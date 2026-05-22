@@ -19,8 +19,8 @@ public class Bird {
     private String myID = ""; // ID of the Bird
     private int reproID = 0; //
     public boolean alive = true;
-    public String deathCause = "";
     public int deathYear = 0;
+    public String deathCause = "";
     private Genes myGenes;
 
     public void birth(Genes genes) {
@@ -45,6 +45,18 @@ public class Bird {
 
     }
 
+    public Bird(int age) {
+        myGenes = new Genes();
+        birth(myGenes);
+        myID += id;
+        this.age = age;
+
+        id++;
+
+    }
+
+
+
     public Bird(Genes g, String newID) { //These are birds who spawned out of reproduction
         birth(g);
         myGenes = g;
@@ -53,17 +65,22 @@ public class Bird {
         myID = newID;
     }
 
-    public void lifeCycle() {
-        if (hp <= 0 && alive) {
+    public void lifeCycle(ArrayList<Bird> deathList, int cycleNum) {
+        if (hp <= 0 && alive) { // virgin clause added, lets see --> its makes everyone die after one child, so removed it
             alive = false;
             die_age = age; // we will preserve death age for analysis of the lifespan
-        } else if (age>30 && Math.random()<(0.3) && alive && reproID!=0) { //VIRGIN CLAUSE: cannot die if virgin and less than 10 :`)
-            alive = false;
+            deathYear= cycleNum;
+            deathList.add(this);
+        } else if (age>30 && Math.random()<(0.05) && alive && reproID!=0) { //VIRGIN CLAUSE: cannot die if virgin and less than 10 :`)
+            alive = false; //starting to question this, since we have the age hp decrement already
             die_age = age;
+            deathList.add(this);
+            deathYear= cycleNum;
             //later make older bird more likely to die
         } else {
             hp-= move(speed);
-            hp-= age/3;
+            if(age > resistance * 50)
+                hp -= age / 5;
         }
 
         //...
@@ -113,14 +130,14 @@ public class Bird {
         }
     }
 
-    public void tryReproduce(Bird b2, ArrayList<Bird> newBorns, World myWorld) {
+    public void tryReproduce(Bird b2, ArrayList<Bird> newBorns, World myWorld, int minAge) {
         //ok so we take the call, do the random, make the genes + ID, then tell bList to make the bird using the new ID and genes
-        hp -= 10; // trying to reproduce costs 10 hp
-        if (fertility>=Math.random() && age>=10) {  // if fertile and of age (yes, 10 is considered the min. reproductive age of them), then they can mate
+        hp -= 3; // trying to reproduce costs 10 hp --> changed to 1 to support cluster
+        if (fertility>=Math.random() && age>=minAge) {  // if fertile and of age (yes, 10 is considered the min. reproductive age of them), then they can mate
             Genes newGenes = Genes.recombine(this.getGenes(), b2.getGenes());
             String newID = createNewID();
             myWorld.addBird(newGenes, newID, newBorns);
-            fertility-=0.2;
+            //fertility-=0.2;
         }
     }
 
@@ -128,6 +145,15 @@ public class Bird {
         reproID++; // iterate the reproID
         String newID = myID + "-" + reproID; //newID is local, and e.g. parentID is 4-11 and reproID is 3, then the childID = 4-11-3
         return newID;
+    }
+
+    public void kill() {
+        alive=false;
+        resetID();
+    }
+
+    private static void resetID () {
+        id = 1;
     }
 
 
@@ -138,6 +164,19 @@ public class Bird {
     public Genes getGenes () {
         return myGenes;
     }
+
+    public String getID() {
+        return myID;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public int getDie_age() {
+        return die_age;
+    }
+
 
     public boolean inRadius(int[] otherPos) { // uses THIS radius and other (energy or bird) position
         if ( Math.hypot(this.position[0]-otherPos[0], this.position[1]-otherPos[1]) <= absorb_rad) {
@@ -154,7 +193,7 @@ public class Bird {
         if (alive) {
             return "Bird #" + myID + " - age: " + age + " - children: " + reproID + " - hp: " + hp + "/" + maxHP + " - position: ("+ getPosition()[0] + ", " + getPosition()[1] + ")\t\t\t" + myGenes;
         } else {
-            return "Bird #" + myID + " - dead at " + die_age + " - children: " + reproID + " - " + myGenes;
+            return "Bird #" + myID + " - dead at " + die_age + " - children: " + reproID + " - died in year " + deathYear + " - " + myGenes;
         }
     }
 
