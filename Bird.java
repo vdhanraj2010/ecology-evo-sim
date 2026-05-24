@@ -79,8 +79,10 @@ public class Bird {
             //later make older bird more likely to die
         } else {
             hp-= move(speed);
-            if(age > resistance * 50)
+            if(age > resistance * 50) {
                 hp -= age / 5;
+            }
+            hp-=2;
         }
 
         //...

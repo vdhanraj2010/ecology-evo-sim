@@ -58,6 +58,10 @@ public class Genes {
         double newSpeed = (Math.random() < 0.5) ? a.speed : b.speed;
          */ /// THis is for dominance or recessive if u want it later
 
+        newSpeed = Math.max(0.1, newSpeed);
+        newResistance = Math.max(0, Math.min(99, newResistance));
+        newAbsorbD = Math.max(0.5, newAbsorbD);
+
         return new Genes(newSize, newSpeed, newMaxHP, newResistance, newAbsorbD);
     }
 
@@ -88,13 +92,25 @@ public class Genes {
     }
 
     private static double mutateDouble(double value, double range) { /// double mutation
-        double mutation = (Math.random() - 0.5) * range;
+        double mutation = 0.0;
+        if (Math.random()<0.01) {
+             mutation = (Math.random() - 10) * range;
+        } else if (Math.random()<0.1) {
+            mutation = (Math.random() - 0.5) * range;
+        }
         return value + mutation;
     }
 
     private static int mutateInt(int value, int range) { /// int mutation
-        int mutation = (int)((Math.random() - 0.5) * range);
-        return value + mutation;
+        //int mutation = (int)((Math.random() - 0.5) * range);
+        double mutation = 0.0;
+        if (Math.random()<0.01) {
+            mutation = (Math.random() - 10) * range;
+        } else if (Math.random()<0.1) {
+            mutation = (Math.random() - 0.5) * range;
+        }
+        return value + (int) mutation;
+
     }
 
 

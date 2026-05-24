@@ -7,9 +7,30 @@ public class Energy {
 
     private int size;
     private int age;
+    private int reproduceAge;
+    private static int maxAge = 20;
+    private double reproduceChance;
 
     public boolean alive = true; // not used
     private int[] position;
+
+    public Energy() {
+        // stats = randomize();
+        randomize();
+        age = 0;
+    }
+
+    public Energy(int[] start) {
+        randomize();
+        position = start;
+    }
+
+    public Energy(int[] start, int newSize) {
+        randomize();
+        position = start;
+        size = newSize;
+        //stats = start; // generate energy in a specific area, specific size
+    }
 
     public void randomize(){
         int r = (int) (1000*Math.random());
@@ -24,15 +45,38 @@ public class Energy {
     // tempStats = [size, speed
     }
 
-    public Energy() {
-        // stats = randomize();
-        randomize();
-        age = 0;
+    public void grow() {
+        age++;
+        if (age>maxAge && size>0) {
+            this.consume();
+        } else if (age>size) {
+
+        }
     }
 
-    public Energy(int[] start) {
-        //stats = start; // generate energy in a specific area, specific size
+    public void spore(World myWorld) { // maybe make it seed for 5 years unaffected
+        if (age>size && size>0) {
+            int newX = position[0] + (int)(Math.random()*11)-5;
+            int newY = position[1] + (int)(Math.random()*11)-5;
+
+            //check to make sure it isn't crossing bounds; if so, then it wraps around, like a globe]
+            newX = (newX>=100) ? newX-100 : newX;
+            newX = (newX<0) ? newX+100 : newX;
+
+            newY = (newY>=100) ? newY-100 : newY;
+            newY = (newY<0) ? newY+100 : newY;
+
+            //int[] position = {newX, newY};// changes position
+            position[0]=newX;
+            position[1]=newY;
+
+            myWorld.sporeEnergy(new int[] {newX, newY}, this.size);
+
+
+        }
     }
+
+
 
     public int getAge() {
         return age;

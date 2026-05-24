@@ -7,12 +7,12 @@ public class main {
         World myWorld = new World();
 
         myWorld.startUp();
-        myWorld.spawnEnergy(1000);
+        myWorld.spawnEnergy(0);
 
         String reroll = "";
         while (!reroll.equals("c")) {
             myWorld.wipeOut();
-            myWorld.spawnBirds(10, 0);
+            myWorld.spawnBirds(100, 0);
             System.out.println("Here is the new starting population: \n");
             myWorld.genResults(50);
             System.out.print("\nContinue or reroll? (type 'c' or 'r' respectively)? \n\t>>> ");
@@ -25,15 +25,17 @@ public class main {
         while (cycles>0) {
             for (int i = 0; i < cycles-1; i++) {
                 System.out.println("\n\tCycle " + ((int)i+past) + " >>> \n");
-                myWorld.spawnEnergy((int)(200.0 / myWorld.aliveList.size())); //check Notes for stats
+                // myWorld.spawnEnergy((int)(200.0 / myWorld.aliveList.size())); //check Notes for stats - stopped using this and made it self-contained
                 //Ideas: spawn = random(0, maxEnergyPool) OR spawn = (int)(120 / Math.sqrt(aliveCount));
-                myWorld.popSave(5, 5, 1000); // this now also dispenses 1000/popSize energy
+                myWorld.energyCycle(0.5, 2, 5, 5);
+                myWorld.popSave(100, 5, 1000); // this now also dispenses 1000/popSize energy // usually 5, 5, 1000
                 myWorld.oneTick(10, 10, past+i);
                 myWorld.pause(0.00);
                 myWorld.genResults(50);
 
             }
             myWorld.endResults(5, 5, cycles);
+            //myWorld.printEnergyLayout();
             past += cycles;
             System.out.println("\n\nHow many more cycles? (type '0' to end) \n\t>>> ");
             cycles = scnr.nextInt();
@@ -57,12 +59,15 @@ public class main {
 
 /* before i commit the 1.1 version, there is a few stuff i wanna do:
 1) make food not 2000/k spawn but rather existing ones duplicate (maybe spore). but i want ot do this in a way that more birds means less eergy but also have the support system that backs up if pop gets low (less birds means more energy). this would also allow for famine to occur in an area but not all areas
-- yes, make spawn in area around like spore, use logistic reproduction on density
+- yes, make spawn in area around like spore, use logistic reproduction on density --DONE!!!
 2) i want to find a way to shorten dynasty names in a easy display fashion, so that when a population reaches a certain point where an (undecided) amount of birds share a long string of ancestors, it is replaced or indicated as to not have to search through 20-character strings for differences.
 - dynasty name (with declaration) OR #13-(12)-2 for exaple
 3) possibly alter genes in a way that makes it more realistic yet not complex yet. this is not necessary but would be a good precursor to when i add environmental effects
 - do this by adding more unique mutations
-4) make children spawn near parents (tell me if this is good or not)
+4) make children spawn near parents (tell me if this is good or not) ---DONE!!!
 - yes, use location
 5) make a mode after recieving results to ask for a graph of deaths, alive pop, or descendants of a lineage*/
 
+/* what should i do next? make the dynasty thing? alter genes to make it more diverse and realistic? make a mode for displaying a graph using dots and a line graph array? any otehr things to make this more evolution lik?
+i recently saw a video of a similar project. this guy used neurons instead and made safe zones ahere cells had to get to. over a thousand generations the cells learned to move a certain direction through mutation and selection.
+while my roject is more realistic and self sustaining, i want to be able to make it more evolution based like that */
