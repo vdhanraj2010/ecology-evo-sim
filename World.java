@@ -1,4 +1,7 @@
 package populationPlay;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 public class World {
@@ -41,9 +44,9 @@ public class World {
 
                 /// reproduce check
                 for (Bird b2 : aliveList) {
-                    if (b.inRadius(b2.getPosition()) && (b2 != b) && b2.alive) { // if Bird2 is not the same bird (no self-incest!!!) and not dead (no necrophilia!!!), then try reproducing (doesnt always work :(   )
+                    if (b.inRadius(b2.getPosition()) && (b2 != b) && b2.alive ){//&& b.getAge()>minAge) { // if Bird2 is not the same bird (no self-incest!!!) and not dead (no necrophilia!!!), then try reproducing (doesnt always work :(   )
                         for (int i=0; i<(Math.random()*cluster); i++) {
-                            b.tryReproduce(b2, newBorns, this, minAge);
+                            b.tryReproduce(b2, newBorns, this, minAge); //minAge not needed anymore
                         }
                     }
                 }
@@ -100,7 +103,7 @@ public class World {
             energyList.add(en);
             usableEnergyList.add(en);
             energyLayout[en.getPosition()[0]][en.getPosition()[1]] ++;
-            System.out.println(""+en.getPosition()[0]+" "+en.getPosition()[1]);
+            // System.out.println(""+en.getPosition()[0]+" "+en.getPosition()[1]);
 
             enCount++;
         }
@@ -113,7 +116,7 @@ public class World {
         energyLayout[en.getPosition()[0]][en.getPosition()[1]] ++;
 
         enCount++;
-        System.out.println("birthEN!");
+        //System.out.println("birthEN!");
 
 
     }
@@ -281,6 +284,74 @@ public class World {
         deathList.clear();
     }
 
+
+    public void saveSimulation(String filename, int currCycle) {
+
+        try {
+            PrintWriter out = new PrintWriter(new FileWriter(filename));
+
+            out.println("Cycle: " + currCycle);
+            out.println("Alive: " + aliveList.size());
+            out.println("Dead: " + deathList.size());
+
+            out.println("\n=== Alive Birds ===");
+
+            System.out.println();
+            int alNum = 0;
+            int alAgeSum = 0;
+            for (Bird b : aliveList) {
+                System.out.println(b);
+                //System.out.println(", " + b.getGenes());
+                alNum++;
+                alAgeSum += b.getAge();
+
+            }
+
+
+            out.println("\n\n=== Dead Birds ===");
+
+            int ddNum = 0;
+            int ddAgeSum = 0;
+            for (Bird b : deathList) {
+                out.println(b);
+                ddNum++;
+                ddAgeSum +=b.getDie_age();
+
+            }
+
+
+            int eNum = 0;
+            int eNum2 = 0;
+            for (Energy e : usableEnergyList) {
+                if (e.getSize()>0) {
+                    eNum++; //this num is more than the amount of net energy spawned (enCount). Why?
+                }
+            }
+            for (Energy d : usableEnergyList) {
+
+                eNum2++; //this num more than eNum, so some in usableEnergyList are <=0. but it is = enCount???
+            }
+
+
+            int alAgeAv = (alNum!=0) ? alAgeSum/alNum : 0;
+
+            int ddAgeAv = (ddNum!=0) ? ddAgeSum/ddNum : 0;
+
+            System.out.println("-------------------------------------------------------------" +
+                    "\n Alive: " + alNum + " - Deaths: " + ddNum + " - Energy left: " + eNum + " " + eNum2+
+                    "\n Average Alive Age: " + alAgeAv + " - Average Death Age: " + ddAgeAv);
+            System.out.println("Alive: " + alNum + " - Dead: " + ddNum);
+
+
+
+            out.close();
+
+            System.out.println("Simulation saved.");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
 //
 //    public void energyCycle() { /// not used yet bc im not sure how the energyCycle will work and where it will be placed

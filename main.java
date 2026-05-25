@@ -7,42 +7,95 @@ public class main {
         World myWorld = new World();
 
         myWorld.startUp();
-        myWorld.spawnEnergy(0);
+        myWorld.spawnEnergy(1000);
 
         String reroll = "";
         while (!reroll.equals("c")) {
             myWorld.wipeOut();
-            myWorld.spawnBirds(100, 0);
+            myWorld.spawnBirds(10, 10);
             System.out.println("Here is the new starting population: \n");
             myWorld.genResults(50);
             System.out.print("\nContinue or reroll? (type 'c' or 'r' respectively)? \n\t>>> ");
             reroll = scnr.next();
         }
 
-        System.out.print("How many cycles? \n\t>>> ");
-        int cycles = scnr.nextInt();
+        System.out.print("How many cycles?\n\t>>> ");
         int past = 0;
-        while (cycles>0) {
-            for (int i = 0; i < cycles-1; i++) {
-                System.out.println("\n\tCycle " + ((int)i+past) + " >>> \n");
-                // myWorld.spawnEnergy((int)(200.0 / myWorld.aliveList.size())); //check Notes for stats - stopped using this and made it self-contained
-                //Ideas: spawn = random(0, maxEnergyPool) OR spawn = (int)(120 / Math.sqrt(aliveCount));
-                myWorld.energyCycle(0.5, 2, 5, 5);
-                myWorld.popSave(100, 5, 1000); // this now also dispenses 1000/popSize energy // usually 5, 5, 1000
-                myWorld.oneTick(10, 10, past+i);
-                myWorld.pause(0.00);
-                myWorld.genResults(50);
 
+        System.out.println("\nEnter commands:");
+        System.out.println("  <number>        -> run cycles");
+        System.out.println("  save <filename>   -> save simulation as <filename>");
+        System.out.println("  stop OR 0            -> quit\n");
+
+        while (true) {
+            System.out.print("\t>>> ");
+            String input = scnr.next().trim();
+
+            // EXIT
+            if (input.equals("stop") || input.equals("0")) {
+                break;
             }
-            myWorld.endResults(5, 5, cycles);
-            //myWorld.printEnergyLayout();
-            past += cycles;
-            System.out.println("\n\nHow many more cycles? (type '0' to end) \n\t>>> ");
-            cycles = scnr.nextInt();
+
+            // SAVE
+            if (input.startsWith("save ")) {
+                String fileName = input.substring(5).trim();
+                myWorld.saveSimulation(fileName, past);
+                System.out.println("Saved to: " + fileName);
+                continue;
+            }
+
+            // OPTIONS
+            if (input.equals("--o")) {
+                System.out.println("\nEnter commands:");
+                System.out.println("  <number>        -> run cycles");
+                System.out.println("  save <filename>   -> save simulation as <filename>");
+                System.out.println("  stop OR 0            -> quit\n");
+                continue;
+            }
+
+            // RESET
+            if (input.equals("--r")) {
+                System.out.println("\nReset command not fully set up yet:");
+                continue;
+            }
+
+
+            //Run N cycles
+            try {
+                int cycles = Integer.parseInt(input);
+                for (int i = 0; i < cycles - 1; i++) {
+                    System.out.println("\n\tCycle " + ((int) i + past) + " >>> \n");
+                    //myWorld.spawnEnergy((int)(200.0 / myWorld.aliveList.size())); //check Notes for stats - stopped using this and made it self-contained
+                    myWorld.spawnEnergy((int)(0)); //test
+                    //Ideas: spawn = random(0, maxEnergyPool) OR spawn = (int)(120 / Math.sqrt(aliveCount));
+                    myWorld.energyCycle(0.50, 2, 5, 5);
+                    myWorld.popSave(10, 5, 1000); // this now also dispenses 1000/popSize energy // usually 5, 5, 1000
+                    myWorld.oneTick(10, 10, past + i);
+                    myWorld.pause(0.5);
+                    myWorld.genResults(50);
+
+                }
+                myWorld.endResults(5, 5, cycles);
+                myWorld.printEnergyLayout();
+                past += cycles;
+
+
+                //System.out.println("\n\nHow many more cycles? (type '0' to end, type '--o for more commands) \n\t>>> ");
+                continue;
+
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid command. Use a number or 'save filename'.");
+            }
+
+            scnr.close();
+            System.out.println("Simulation ended :)");
         }
 
     }
+
 }
+
+
 
 /* ok so for the next update, i wanna make the energy spawned linked to the amount before, so resource scarcity becomes a thing. ---DONE!
 * lI want to add indicators in the printing for famines, mass deaths, cause of death, linked genes (like resistance+fertility=1), and more

@@ -134,12 +134,13 @@ public class Bird {
 
     public void tryReproduce(Bird b2, ArrayList<Bird> newBorns, World myWorld, int minAge) {
         //ok so we take the call, do the random, make the genes + ID, then tell bList to make the bird using the new ID and genes
-        hp -= 3; // trying to reproduce costs 10 hp --> changed to 1 to support cluster
+        hp -= 5; // trying to reproduce costs 10 hp --> changed to 1 to support cluster
         if (fertility>=Math.random() && age>=minAge) {  // if fertile and of age (yes, 10 is considered the min. reproductive age of them), then they can mate
             Genes newGenes = Genes.recombine(this.getGenes(), b2.getGenes());
             String newID = createNewID();
             myWorld.addBird(newGenes, newID, newBorns);
             //fertility-=0.2;
+            hp -= 5;
         }
     }
 
