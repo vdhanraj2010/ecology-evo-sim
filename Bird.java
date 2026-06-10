@@ -19,6 +19,7 @@ public class Bird {
     private String myID = ""; // ID of the Bird
     private int reproID = 0; //
     public boolean alive = true;
+    public boolean juvenile = true;
     public int deathYear = 0;
     public String deathCause = "";
     private Genes myGenes;
@@ -78,11 +79,20 @@ public class Bird {
             deathYear= cycleNum;
             //later make older bird more likely to die
         } else {
+
             hp-= move(speed);
+
+            if(juvenile){ //underage
+                hp -= 1;
+            } else if (age>=10 && juvenile) {
+                juvenile = false;
+            }
+
             if(age > resistance * 50) {
                 hp -= age / 5;
             }
             hp-=2;
+
         }
 
         //...
@@ -182,7 +192,9 @@ public class Bird {
 
 
     public boolean inRadius(int[] otherPos) { // uses THIS radius and other (energy or bird) position
-        if ( Math.hypot(this.position[0]-otherPos[0], this.position[1]-otherPos[1]) <= absorb_rad) {
+        if (Math.hypot(this.position[0] - otherPos[0], this.position[1] - otherPos[1]) <= absorb_rad && juvenile) {
+            return true;
+        } else if (Math.hypot(this.position[0] - otherPos[0], this.position[1] - otherPos[1]) <= absorb_rad*age/10 && !juvenile) {
             return true;
         } else {
             return false;

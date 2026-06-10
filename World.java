@@ -74,6 +74,8 @@ public class World {
             int nearby = nearbyEnergy(e, radius);
             double chance = energyThresh * (1.0 - ((double) nearby / maxLocalFood));
 
+            chance = Math.min(1, Math.max(0, chance));
+
             // if (Math.random()>energyThresh) {
             for (int s=0; s<sporeNum; s++) {
                 if (Math.random()<= chance) {
@@ -81,15 +83,19 @@ public class World {
                 }
             }
 
-            if (e.getSize()<=0) {
-                energyLayout[e.getPosition()[0]][e.getPosition()[1]] --;
-                usableEnergyList.removeIf(dead -> dead.equals(e)); // soft launch into using only an alive energy list
+            if (e.getSize()==0) {
+                if (e.getSize()<0) {
+                    System.out.println("hi im ded");
+                }
+                energyLayout[e.getPosition()[0]][e.getPosition()[1]] = Math.max(0, energyLayout[e.getPosition()[0]][e.getPosition()[1]] - 1);
+               // usableEnergyList.removeIf(dead -> dead.equals(e)); // soft launch into using only an alive energy list
+                usableEnergyList.remove(i);
+
                 enCount--;
+
             }
 
-            if (e.getSize()<0) {
-                System.out.println("hi im ded");
-            }
+
             e.grow();
         }
     }
@@ -109,6 +115,24 @@ public class World {
         }
     }
 
+    public void spawnEnergyMap(int map, int amount){
+        //make switch later
+        if (map==1) { //square in top left corner
+            for (int i=0; i<Math.sqrt(amount); i++) {
+                for (int j=0; j<Math.sqrt(amount); j++) {
+                    Energy en = new Energy(new int[] {i, j});
+                    energyList.add(en);
+                    usableEnergyList.add(en);
+                    energyLayout[en.getPosition()[0]][en.getPosition()[1]] ++;
+
+                    enCount++;
+                }
+            }
+        } else {
+            System.out.println("Map not found.");
+        }
+    }
+
     public void sporeEnergy(int[] coords, int size) {
         Energy en = new Energy(coords, size);
         energyList.add(en);
@@ -125,7 +149,9 @@ public class World {
 
         int count = 0;
 
-        for(Energy other : energyList) {
+        for(Energy other : usableEnergyList) {
+
+            if (other.getSize() <= 0) continue;
 
             int dx = e.getPosition()[0] - other.getPosition()[0];
             int dy = e.getPosition()[1] - other.getPosition()[1];
@@ -138,6 +164,7 @@ public class World {
 
         return count;
     }
+
 
     public void spawnBirds(int amount, int age) {
         for (int i=0; i<amount; i++) {

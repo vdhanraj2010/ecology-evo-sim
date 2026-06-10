@@ -16,10 +16,11 @@ public class Genes {
 
         size = r%10+1;  //size is last digit+1
         speed = ((r / 10) % 1000) / 100.0; //speed is the first three numbers of r in a decimal, arranged A.BC
-        maxHP = (int)(Math.random() * 50 + 5 - absorb_d/2);
         resistance = Math.random();
         fertility = 1.0-resistance;
         absorb_d = Math.random()*50+2; //this is the gene for absorb before the logarithmic curve (explained more in Bird tab)
+        maxHP = (int)(Math.random() * 50 + 5 - absorb_d/2);
+        maxHP = Math.max(5, maxHP);
 
 
         // tempStats = [size, speed
@@ -58,8 +59,9 @@ public class Genes {
         double newSpeed = (Math.random() < 0.5) ? a.speed : b.speed;
          */ /// THis is for dominance or recessive if u want it later
 
-        newSpeed = Math.max(0.1, newSpeed);
-        newResistance = Math.max(0, Math.min(99, newResistance));
+        newSpeed = Math.max(0, newSpeed);
+        newMaxHP = Math.max(1, newMaxHP);
+        newResistance = Math.max(0, Math.min(1, newResistance));
         newAbsorbD = Math.max(0.5, newAbsorbD);
 
         return new Genes(newSize, newSpeed, newMaxHP, newResistance, newAbsorbD);
@@ -86,6 +88,7 @@ public class Genes {
         return absorb_d;
     }
 
+
     //helper
     private static double average(double x, double y) {
         return (x + y) / 2.0;
@@ -94,7 +97,7 @@ public class Genes {
     private static double mutateDouble(double value, double range) { /// double mutation
         double mutation = 0.0;
         if (Math.random()<0.01) {
-             mutation = (Math.random() - 10) * range;
+             mutation = (Math.random()*10 - 20) * range;
         } else if (Math.random()<0.1) {
             mutation = (Math.random() - 0.5) * range;
         }
@@ -105,7 +108,7 @@ public class Genes {
         //int mutation = (int)((Math.random() - 0.5) * range);
         double mutation = 0.0;
         if (Math.random()<0.01) {
-            mutation = (Math.random() - 10) * range;
+            mutation = (Math.random()*10 - 20) * range;
         } else if (Math.random()<0.1) {
             mutation = (Math.random() - 0.5) * range;
         }

@@ -56,8 +56,8 @@ public class Energy {
 
     public void spore(World myWorld) { // maybe make it seed for 5 years unaffected
         if (age>size && size>0) {
-            int newX = position[0] + (int)(Math.random()*11)-5;
-            int newY = position[1] + (int)(Math.random()*11)-5;
+            int newX = position[0] + (int)(Math.random()*3)-1;// used to be radius 5, now is just 1 block
+            int newY = position[1] + (int)(Math.random()*3)-1;
 
             //check to make sure it isn't crossing bounds; if so, then it wraps around, like a globe]
             newX = (newX>=100) ? newX-100 : newX;
@@ -69,6 +69,12 @@ public class Energy {
             //int[] position = {newX, newY};// changes position
             position[0]=newX;
             position[1]=newY;
+
+            // child gets HALF
+            int childSize = (int) (size*0.7);
+
+            // parent loses HALF
+            size -= childSize;
 
             myWorld.sporeEnergy(new int[] {newX, newY}, this.size);
 
