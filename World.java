@@ -13,6 +13,9 @@ public class World {
     int[][] energyLayout;
 
     int enCount = 0;
+    int parthCount=0;
+    int birthcount = 0;
+
 
     public World () {
         birdList = new ArrayList<Bird>();
@@ -29,7 +32,7 @@ public class World {
 
 
 
-    public void oneTick(int cluster, int minAge, int cycleNum) {
+    public void oneTick(int cluster, int minAge, int cycleNum, int parthNum) {
         ArrayList<Bird> newBorns = new ArrayList<Bird>();
         ArrayList<Bird> newDeaths = new ArrayList<Bird>();
         for (Bird b : aliveList) { /// for each bird, if its alive then run life cycle and try eating + reproducing
@@ -37,7 +40,7 @@ public class World {
             b.lifeCycle(deathList, cycleNum); /// need to try making a list of deaths in order and why
             if (b.alive) {
                 for (Energy e : usableEnergyList) {
-                    if (b.inRadius(e.getPosition()) && e.getSize() > 0) { // if energy is in radius AND available
+                    if ((b.inRadius(e.getPosition()) && b.getHP()<=b.getMaxHP()) && (e.getSize() > 0 && e.isSprouted())) { // if energy is in radius AND available
                         b.absorbEnergy(e);
                     }
                 }
@@ -49,6 +52,11 @@ public class World {
                             b.tryReproduce(b2, newBorns, this, minAge); //minAge not needed anymore
                         }
                     }
+                }
+                if (aliveList.size()<=parthNum && Math.random()<0.25) { //Parthenogenesis in population stress
+                    b.tryReproduce(b, newBorns, this, minAge);
+                    System.out.println("PARTHEN!!!");
+                    parthCount++;
                 }
 
             } else {
@@ -174,8 +182,8 @@ public class World {
         }
     }
 
-    public void addBird(Genes g, String newID, ArrayList<Bird> sepList) {
-        Bird b = new Bird(g, newID);
+    public void addBird(Genes g, String newID, ArrayList<Bird> sepList, int[] newPos) {
+        Bird b = new Bird(g, newID, newPos);
         sepList.add(b);
     }
 
@@ -226,7 +234,7 @@ public class World {
 
         System.out.println("-------------------------------------------------------------" +
                 "\n Alive: " + alNum + " - Deaths: " + ddNum + " - Energy left: " + eNum +
-                "\t\t\t Average Alive Age: " + alAvNum + " - Average (recent) Death Age: " + ddAgeSum/numDeadShow);
+                "\t\t\t Average Alive Age: " + alAvNum + " - Average (recent) Death Age: " + ddAgeSum/numDeadShow + " Partho Count: " + parthCount);
 
 
     }
@@ -238,7 +246,7 @@ public class World {
 
     public void endResults(int cluster, int minAge, int cycleNum){
         System.out.println("\n\tLast Cycle\n");
-        this.oneTick(cluster, minAge, cycleNum);
+        this.oneTick(cluster, minAge, cycleNum, 5);
 
         int ddNum = 0;
         int ddAgeSum = 0;
@@ -279,7 +287,7 @@ public class World {
         System.out.println("-------------------------------------------------------------" +
                 "\n Alive: " + alNum + " - Deaths: " + ddNum + " - Energy left: " + eNum + " " + eNum2+
                 "\n Average Alive Age: " + alAgeAv + " - Average Death Age: " + ddAgeAv);
-        System.out.println("Alive: " + alNum + " - Dead: " + ddNum);
+        System.out.println("Alive: " + alNum + " - Dead: " + ddNum + " - Partho Count: " + parthCount + " - Birth Count: " + birdList.size());
 
     };
 
@@ -378,6 +386,14 @@ public class World {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public ArrayList<Bird> getAliveList() {
+        return aliveList;
+    }
+
+    public ArrayList<Energy> getUsableEnergyList() {
+        return usableEnergyList;
     }
 
 //

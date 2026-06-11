@@ -1,19 +1,23 @@
 package populationPlay;
 import java.util.Scanner;
+import populationPlay.visual.MapPanel;
+import populationPlay.visual.SimulationFrame;
 
 public class main {
     public static void main(String[] args) {
         Scanner scnr = new Scanner(System.in);
         World myWorld = new World();
+        MapPanel panel = new MapPanel(myWorld);
+        SimulationFrame frame = new SimulationFrame(panel);
 
         myWorld.startUp();
-        myWorld.spawnEnergy(1000);
-        //myWorld.spawnEnergyMap(1, 1000);
+        myWorld.spawnEnergy(5000);
+        myWorld.spawnEnergyMap(1, 5000);
 
         String reroll = "";
         while (!reroll.equals("c")) {
             myWorld.wipeOut();
-            myWorld.spawnBirds(20, 0);
+            myWorld.spawnBirds(100, 0);
             System.out.println("Here is the new starting population: \n");
             myWorld.genResults(50);
             System.out.print("\nContinue or reroll? (type 'c' or 'r' respectively)? \n\t>>> ");
@@ -70,17 +74,23 @@ public class main {
                     myWorld.spawnEnergy((int)(0)); //test
                     //Ideas: spawn = random(0, maxEnergyPool) OR spawn = (int)(120 / Math.sqrt(aliveCount));
                     myWorld.energyCycle(0.50, 1, 5, 5);
-                    myWorld.popSave(10, 5, 1000); // this now also dispenses 1000/popSize energy // usually 5, 5, 1000
-                    myWorld.oneTick(10, 10, past + i);
-                    myWorld.pause(0.1);
-                    myWorld.genResults(50);
+                    myWorld.popSave(0, 5, 1000); // this now also dispenses 1000/popSize energy // usually 5, 5, 1000
+                    myWorld.oneTick(10, 10, past + i, 5);
+                    myWorld.pause(0.00);
+                    panel.repaint();
+                    myWorld.genResults(10);
+
+                    if (myWorld.aliveList.size()==0) {
+                        System.out.println("Extinction!!!");
+                        break;
+                    }
 
                 }
                 myWorld.spawnEnergy((int)(0)); //test
-                myWorld.energyCycle(0.50, 2, 5, 5);
-                myWorld.popSave(10, 5, 1000);
+                myWorld.energyCycle(0.50, 2, 5, 10);
                 myWorld.endResults(5, 5, cycles);
-                myWorld.printEnergyLayout();
+                panel.repaint();
+                //myWorld.printEnergyLayout();
                 past += cycles;
 
 
@@ -91,9 +101,10 @@ public class main {
                 System.out.println("Invalid command. Use a number or 'save filename'.");
             }
 
-            scnr.close();
+
             System.out.println("Simulation ended :)");
         }
+        scnr.close();
 
     }
 
@@ -112,6 +123,8 @@ public class main {
  * - 1000 stabilizes at 10-20
  * - 2000
  * - 5000 stabilizes at 100-150
+ *
+ * Regular spore: myWorld.energyCycle(0.50, 1, 5, 5);
  * */
 
 /* before i commit the 1.1 version, there is a few stuff i wanna do:

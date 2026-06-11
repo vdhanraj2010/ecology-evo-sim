@@ -8,7 +8,7 @@ public class Energy {
     private int size;
     private int age;
     private int reproduceAge;
-    private static int maxAge = 20;
+    private static int maxAge = 50;
     private double reproduceChance;
 
     public boolean alive = true; // not used
@@ -79,6 +79,14 @@ public class Energy {
             myWorld.sporeEnergy(new int[] {newX, newY}, this.size);
 
 
+        }
+    }
+
+    public boolean isSprouted() {
+        if (age>5) {
+            return true;
+        } else {
+            return false;
         }
     }
 

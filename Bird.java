@@ -58,10 +58,10 @@ public class Bird {
 
 
 
-    public Bird(Genes g, String newID) { //These are birds who spawned out of reproduction
+    public Bird(Genes g, String newID, int[] pos) { //These are birds who spawned out of reproduction
         birth(g);
         myGenes = g;
- //       position = new int[] {(int) (Math.random()*100), (int) (Math.random()*100)};  // moves to borth
+       position = pos;  // moves to mother radius
 
         myID = newID;
     }
@@ -91,7 +91,6 @@ public class Bird {
             if(age > resistance * 50) {
                 hp -= age / 5;
             }
-            hp-=2;
 
         }
 
@@ -145,10 +144,25 @@ public class Bird {
     public void tryReproduce(Bird b2, ArrayList<Bird> newBorns, World myWorld, int minAge) {
         //ok so we take the call, do the random, make the genes + ID, then tell bList to make the bird using the new ID and genes
         hp -= 5; // trying to reproduce costs 10 hp --> changed to 1 to support cluster
-        if (fertility>=Math.random() && age>=minAge) {  // if fertile and of age (yes, 10 is considered the min. reproductive age of them), then they can mate
+        if (fertility>=Math.random() && age>=minAge && hp>maxHP*0.7) {  // if fertile and of age (yes, 10 is considered the min. reproductive age of them), then they can mate
             Genes newGenes = Genes.recombine(this.getGenes(), b2.getGenes());
             String newID = createNewID();
-            myWorld.addBird(newGenes, newID, newBorns);
+
+            int newX = position[0] + (int)((Math.random()*absorb_rad*2)-absorb_rad);// spawns baby in absorb radius
+            int newY = position[1] + (int)((Math.random()*absorb_rad*2)-absorb_rad);
+
+            //check to make sure it isn't crossing bounds; if so, then it wraps around, like a globe]
+            newX = (newX>=100) ? newX-100 : newX;
+            newX = (newX<0) ? newX+100 : newX;
+
+            newY = (newY>=100) ? newY-100 : newY;
+            newY = (newY<0) ? newY+100 : newY;
+
+            //int[] position = {newX, newY};// changes position
+            position[0]=newX;
+            position[1]=newY;
+
+            myWorld.addBird(newGenes, newID, newBorns, new int[] {newX, newY});
             //fertility-=0.2;
             hp -= 5;
         }
@@ -188,6 +202,14 @@ public class Bird {
 
     public int getDie_age() {
         return die_age;
+    }
+
+    public int getHP() {
+        return hp;
+    }
+
+    public int getMaxHP() {
+        return maxHP;
     }
 
 
