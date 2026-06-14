@@ -1,6 +1,7 @@
 package populationPlay;
 import java.util.ArrayList;
 import java.text.DecimalFormat;
+import java.util.Random;
 
 public class Genes {
     double speed;
@@ -10,6 +11,7 @@ public class Genes {
     int size;
     double absorb_d; //This is the factor passed down for absorb distance, raw (before curving)
     // String heritage; //ID of bird
+    int[] speciesCode;
 
     public Genes() {
          int r =  (int) (Math.random()*10000); // r is a random integer ABCD
@@ -20,13 +22,14 @@ public class Genes {
         fertility = 1.0-resistance;
         absorb_d = Math.random()*50+2; //this is the gene for absorb before the logarithmic curve (explained more in Bird tab)
         maxHP = (int)(Math.random() * 50 + 5 - absorb_d/2);
-        maxHP = Math.max(5, maxHP);
+        maxHP = Math.max(5, maxHP); //IDEA: r-select vs k-select. more HP means less cluster babies, but less hp = more babies
+        speciesCode = new int[] {1000, 1000, 1000, 1000};
 
 
         // tempStats = [size, speed
     }
 
-    public Genes(int s, double sp, int mhp, double res, double ab_d) {
+    public Genes(int s, double sp, int mhp, double res, double ab_d, int[] specCode) {
         // sets the genes to whatever given
         size = s;
         speed = sp;
@@ -34,6 +37,7 @@ public class Genes {
         resistance = res;
         fertility = 1.0-resistance;
         absorb_d = ab_d;
+        speciesCode = specCode;
 
 
 
@@ -41,19 +45,22 @@ public class Genes {
 
     public static Genes recombine(Genes a, Genes b) {
 
+        int[] newSpecCode = new int[] {a.speciesCode[0], b.speciesCode[1], a.speciesCode[2], b.speciesCode[3]};
+
         int newSize = (Math.random() < 0.5) ? a.size : b.size; //takes 50% either parent size
 
         double newSpeed = average(a.speed, b.speed);
-        newSpeed = mutateDouble(newSpeed, 0.2);
+        newSpeed = mutateDouble(newSpecCode, newSpeed, 0.2);
 
         int newMaxHP = (int) Math.round(average(a.maxHP, b.maxHP));
-        newMaxHP = mutateInt(newMaxHP, 2);
+        newMaxHP = mutateInt(newSpecCode, newMaxHP, 2);
 
         double newResistance = average(a.resistance, b.resistance);
-        newResistance = mutateDouble(newResistance, 0.1);
+        newResistance = mutateDouble(newSpecCode, newResistance, 0.1);
 
         double newAbsorbD = average(a.absorb_d, b.absorb_d);
-        newAbsorbD = mutateDouble(newAbsorbD, 3);
+        newAbsorbD = mutateDouble(newSpecCode, newAbsorbD, 3);
+
 
         /*
         double newSpeed = (Math.random() < 0.5) ? a.speed : b.speed;
@@ -64,7 +71,7 @@ public class Genes {
         newResistance = Math.max(0, Math.min(1, newResistance));
         newAbsorbD = Math.max(0.5, newAbsorbD);
 
-        return new Genes(newSize, newSpeed, newMaxHP, newResistance, newAbsorbD);
+        return new Genes(newSize, newSpeed, newMaxHP, newResistance, newAbsorbD, newSpecCode);
     }
 
     //obtaining methods
@@ -94,26 +101,39 @@ public class Genes {
         return (x + y) / 2.0;
     }
 
-    private static double mutateDouble(double value, double range) { /// double mutation
+    private static double mutateDouble(int[] newSpecCode, double value, double range) { /// double mutation
         double mutation = 0.0;
         if (Math.random()<0.01) {
              mutation = (Math.random()*10 - 20) * range;
+             mutateSpecCode(newSpecCode, 5);
+
         } else if (Math.random()<0.1) {
             mutation = (Math.random() - 0.5) * range;
+            mutateSpecCode(newSpecCode, 1);
         }
         return value + mutation;
     }
 
-    private static int mutateInt(int value, int range) { /// int mutation
+    private static int mutateInt(int[] newSpecCode, int value, int range) { /// int mutation
         //int mutation = (int)((Math.random() - 0.5) * range);
         double mutation = 0.0;
         if (Math.random()<0.01) {
             mutation = (Math.random()*10 - 20) * range;
+            mutateSpecCode(newSpecCode, 5);
         } else if (Math.random()<0.1) {
             mutation = (Math.random() - 0.5) * range;
+            mutateSpecCode(newSpecCode, 1);
         }
         return value + (int) mutation;
 
+    }
+
+    private static void mutateSpecCode(int[] newSpecCode, int mutAmt) {
+        int vecNum= (int)(Math.random()*newSpecCode.length);
+        Random random = new Random();
+        int sign = random.nextBoolean() ? 1 : -1;
+        newSpecCode[vecNum] += mutAmt*sign;
+       // return newSpecCode;
     }
 
 

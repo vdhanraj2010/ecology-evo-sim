@@ -13,6 +13,9 @@ public class Bird {
     private double fertility;
     private int size;
     private double absorb_rad;
+    public String biomeIn;
+    public Biome currBiome;
+    public static int worldSize;
 
 
     private static int id = 1; //id number that starts all origin birds
@@ -22,11 +25,12 @@ public class Bird {
     public boolean juvenile = true;
     public int deathYear = 0;
     public String deathCause = "";
+    public int deathCauseDone = 0; //temp
     private Genes myGenes;
 
     public void birth(Genes genes) {
         age = 0; //sets age to 0
-        position = new int[] {(int) (Math.random()*100), (int) (Math.random()*100)};
+        position = new int[] {(int) (Math.random()*worldSize), (int) (Math.random()*worldSize)};
         speed = genes.getSpeed();
         size = genes.getSize();
         maxHP = genes.getHP();
@@ -34,6 +38,8 @@ public class Bird {
         fertility = genes.fertility;
         hp = maxHP;
         absorb_rad = Math.pow(genes.getAbsorb(), 1.0/2) ; //uses a cbrt curve to determine the effect of the distance of absorption
+
+
 
     }
 
@@ -58,15 +64,27 @@ public class Bird {
 
 
 
-    public Bird(Genes g, String newID, int[] pos) { //These are birds who spawned out of reproduction
+    public Bird(Genes g, String newID, int[] pos, Biome[][] biomeMap) { //These are birds who spawned out of reproduction
         birth(g);
         myGenes = g;
        position = pos;  // moves to mother radius
+        currBiome = biomeMap[position[0]][position[1]];
+        biomeIn = currBiome.getBiomeName();
 
         myID = newID;
     }
 
-    public void lifeCycle(ArrayList<Bird> deathList, int cycleNum) {
+    public static void setWorldSize(int wSize) {
+        worldSize=wSize;
+    }
+
+    public void lifeCycle(ArrayList<Bird> deathList, int cycleNum, Biome[][] biomeMap) {
+
+        currBiome = biomeMap[position[0]][position[1]];
+        biomeIn = currBiome.getBiomeName();
+        double movementFactor = currBiome.getMovementMult();
+
+
         if (hp <= 0 && alive) { // virgin clause added, lets see --> its makes everyone die after one child, so removed it
             alive = false;
             die_age = age; // we will preserve death age for analysis of the lifespan
@@ -80,17 +98,33 @@ public class Bird {
             //later make older bird more likely to die
         } else {
 
-            hp-= move(speed);
+
+            hp-= move(speed*movementFactor);
+            if (hp<=0 && deathCauseDone==0) {
+                deathCause="movement";
+                deathCauseDone=1;
+            }
 
             if(juvenile){ //underage
                 hp -= 1;
-            } else if (age>=10 && juvenile) {
+            } else if (age>=10 && juvenile) { //IDEA: make juvenile scale a gene, early mature means less lifespan
                 juvenile = false;
             }
+            hp -=5;
+            if (hp<=0 && deathCauseDone==0) {
+                deathCause="hunger";
+                deathCauseDone=1;
+            }
+
 
             if(age > resistance * 50) {
                 hp -= age / 5;
+                if (hp<=0 && deathCauseDone==0) {
+                    deathCause="old age";
+                    deathCauseDone=1;
+                }
             }
+
 
         }
 
@@ -108,11 +142,11 @@ public class Bird {
 
         //check to make sure it isn't crossing bounds; if so, then it wraps around, like a globe
         int newX = (position[0]+dx);
-        newX = (newX>100) ? newX-100 : newX;
-        newX = (newX<0) ? newX+100 : newX;
+        newX = (newX>=worldSize) ? newX-worldSize : newX;
+        newX = (newX<0) ? newX+worldSize : newX;
         int newY = position[1]+dy;
-        newY = (newY>100) ? newY-100 : newY;
-        newY = (newY<0) ? newY+100 : newY;
+        newY = (newY>=worldSize) ? newY-worldSize : newY;
+        newY = (newY<0) ? newY+worldSize : newY;
 
 
         //int[] position = {newX, newY};// changes position
@@ -134,29 +168,63 @@ public class Bird {
     }
 //BOTH absorbEnergy and tryReproduce selection and confirmation is handled by the World
     public void absorbEnergy (Energy e) {
-        hp+=e.consume();
+        hp+=e.consume()/absorb_rad*10;
 
         if (hp>maxHP) {
             hp = maxHP;
         }
     }
 
-    public void tryReproduce(Bird b2, ArrayList<Bird> newBorns, World myWorld, int minAge) {
+    public void tryReproduce(Bird b2, ArrayList<Bird> newBorns, World myWorld, int minAge, int specLim) {
         //ok so we take the call, do the random, make the genes + ID, then tell bList to make the bird using the new ID and genes
-        hp -= 5; // trying to reproduce costs 10 hp --> changed to 1 to support cluster
-        if (fertility>=Math.random() && age>=minAge && hp>maxHP*0.7) {  // if fertile and of age (yes, 10 is considered the min. reproductive age of them), then they can mate
+        hp -= 0; // trying to reproduce costs 10 hp --> changed to 1 to support cluster
+
+        String[] b1IdNum = this.getID().split("-");
+        String[] b2IdNum = b2.getID().split("-");
+
+        //later, instead of a speciation limit, i will make it a factor of fertility calculation based on genetic distance
+        // another thing i can do, risky, is that if the genes are too different then no breed
+        // i think i will do the latter, by making a original number (1000), each mutation makes it alter + or -, and if the difference is too much, no mate. this way most times only recent ancestry can mate bc unique random lineage
+//        int b1SpecLim;
+//        int b2SpecLim;
+//
+//        int b1Ind = nthIndexOf(this.getID(), '-', specLim);
+//        int b2Ind = nthIndexOf(b2.getID(), '-', specLim);
+//
+//        if (b1Ind != -1) {
+//            // Take the sample up to the 6th dash
+//            String result = input.substring(0, index);
+//            System.out.println(result); // Outputs: 123-45-678-90-123
+//        } else {
+//            System.out.println("Less than 6 dashes found.");
+
+
+//        if ((specLim>=b1IdNum.length || specLim>=b2IdNum.length) || specLim==0) {
+//            b1SpecLim=1;
+//            b2SpecLim=2;
+//        } else {
+//            // System.out.println(b1IdNum.length + " and "+ b2IdNum.length);
+//
+//            b1SpecLim = Integer.parseInt(b1IdNum[b1IdNum.length-specLim]);
+//            b2SpecLim = Integer.parseInt(b2IdNum[b2IdNum.length-specLim]);
+//        }
+
+        double specDiff = Math.sqrt(Math.pow(myGenes.speciesCode[0]-b2.getGenes().speciesCode[0], 2) + Math.pow(myGenes.speciesCode[1]-b2.getGenes().speciesCode[1], 2) +
+                Math.pow(myGenes.speciesCode[2]-b2.getGenes().speciesCode[2], 2) + Math.pow(myGenes.speciesCode[3]-b2.getGenes().speciesCode[3], 2)); // distance between species code vectors determine
+
+        if (fertility>=Math.random() && age>=minAge && hp>maxHP*0.7 && specDiff<=specLim) {  // if fertile and of age (yes, 10 is considered the min. reproductive age of them), then they can mate
             Genes newGenes = Genes.recombine(this.getGenes(), b2.getGenes());
             String newID = createNewID();
 
             int newX = position[0] + (int)((Math.random()*absorb_rad*2)-absorb_rad);// spawns baby in absorb radius
-            int newY = position[1] + (int)((Math.random()*absorb_rad*2)-absorb_rad);
+            int newY = position[1] + (int)((Math.random()*absorb_rad*2)-absorb_rad); //IDEA: gene for spawn radius
 
             //check to make sure it isn't crossing bounds; if so, then it wraps around, like a globe]
-            newX = (newX>=100) ? newX-100 : newX;
-            newX = (newX<0) ? newX+100 : newX;
+            newX = (newX>=worldSize) ? newX-worldSize : newX;
+            newX = (newX<0) ? newX+worldSize : newX;
 
-            newY = (newY>=100) ? newY-100 : newY;
-            newY = (newY<0) ? newY+100 : newY;
+            newY = (newY>=worldSize) ? newY-worldSize : newY;
+            newY = (newY<0) ? newY+worldSize : newY;
 
             //int[] position = {newX, newY};// changes position
             position[0]=newX;
@@ -164,8 +232,18 @@ public class Bird {
 
             myWorld.addBird(newGenes, newID, newBorns, new int[] {newX, newY});
             //fertility-=0.2;
-            hp -= 5;
+            hp -= (int) ((maxHP * 0.10) + absorb_rad);
+        } //else if (specDiff>specLim) {
+//             System.out.println("Speciation!!!");
+//        }
+    }
+
+    public static int nthIndexOf(String text, char ch, int n) {
+        int pos = text.indexOf(ch, 0);
+        while (n-- > 1 && pos != -1) {
+            pos = text.indexOf(ch, pos + 1);
         }
+        return pos;
     }
 
     private String createNewID () {
@@ -228,9 +306,9 @@ public class Bird {
     @Override
     public String toString() {
         if (alive) {
-            return "Bird #" + myID + " - age: " + age + " - children: " + reproID + " - hp: " + hp + "/" + maxHP + " - position: ("+ getPosition()[0] + ", " + getPosition()[1] + ")\t\t\t" + myGenes;
+            return "Bird #" + myID + " - age: " + age + " - children: " + reproID + " - hp: " + hp + "/" + maxHP + " - position: ("+ getPosition()[0] + ", " + getPosition()[1] + ") - biome: " + biomeIn + "\t\t\t" + myGenes;
         } else {
-            return "Bird #" + myID + " - dead at " + die_age + " - children: " + reproID + " - died in year " + deathYear + " - " + myGenes;
+            return "Bird #" + myID + " - dead at " + die_age + " - children: " + reproID + " - died in year " + deathYear + " - died of " + deathCause + " - " + myGenes;
         }
     }
 
