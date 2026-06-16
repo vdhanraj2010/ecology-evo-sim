@@ -13,6 +13,7 @@ public class Energy {
     public static int worldSize;
 
     public boolean alive = true; // not used
+    public int decompCount=0;
     private int[] position;
 
     public Energy() {
@@ -50,37 +51,55 @@ public class Energy {
         worldSize=wSize;
     }
 
-    public void grow() {
-        age++;
-        if (age>maxAge && size>0) {
-            this.consume();
-        } else if (age>size) {
+    public void grow(int [][] decompGrid) {
+        if (decompGrid[this.position[0]][this.position[1]]<=0) {
+            age++;
+            if (age > maxAge && size > 0) {
+                this.consume();
+            } else if (age > size) {
 
+            }
+        } else if (decompGrid[this.position[0]][this.position[1]]>0 && !isSprouted()) {
+            this.consume();
+        } else {
+            // this means it is a seed and in the decomp zone, so just freezes growth
+            System.out.println("Seed Frozen");
         }
     }
 
     public void spore(World myWorld, double eSpread) { // maybe make it seed for 5 years unaffected
         if (age>size && size>0) {
-            int newX = position[0] + (int)((Math.random()*3*eSpread*2)-eSpread);// used to be radius 5, now is just 1 block * eSpread
-            int newY = position[1] + (int)((Math.random()*3*eSpread*2)-eSpread);
+//            int newX = position[0] + (int)((Math.random()*3*eSpread*2)-eSpread*3);// used to be radius 5, now is just 1 block * eSpread
+//            int newY = position[1] + (int)((Math.random()*3*eSpread*2)-eSpread*3);
 
             //check to make sure it isn't crossing bounds; if so, then it wraps around, like a globe]
-            newX = (newX>=worldSize) ? newX-worldSize : newX;
-            newX = (newX<0) ? newX+worldSize : newX;
+//            newX = (newX+100)%worldSize;
+//            newY = (newY+100)%worldSize;
 
-            newY = (newY>=worldSize) ? newY-worldSize : newY;
-            newY = (newY<0) ? newY+worldSize : newY;
+            double angle = Math.random() * Math.PI * 2;
+
+            double distance = (Math.random() * 4.0 + 1.0) * eSpread;
+
+            int dx = (int) Math.round(Math.cos(angle) * distance);
+            int dy = (int) Math.round(Math.sin(angle) * distance);
+            int newX = (this.position[0] + dx + worldSize) % worldSize;
+            int newY = (this.position[1] + dy + worldSize) % worldSize;
+
+
 
             //int[] position = {newX, newY};// changes position
+
             position[0]=newX;
             position[1]=newY;
 
-            // child gets HALF
+
+            // child gets most
             int childSize = (int) (size*0.7);
 
             // parent loses HALF
             size -= childSize;
 
+            // Stage or instantiate your new seed object
             myWorld.sporeEnergy(new int[] {newX, newY}, this.size);
 
 
@@ -116,6 +135,7 @@ public class Energy {
     public int consume() {
         int food = size;
         size = 0;
+        decompCount=5;
         return food;
     }
 

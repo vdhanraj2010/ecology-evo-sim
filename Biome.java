@@ -7,6 +7,7 @@ public class Biome {
     private double energySpread;
     private double movementCost;
     private double movementMult;
+    private double temperature;
 
     public Biome (String biomeInd) {
         if (biomeInd.equals("P")) {
@@ -54,7 +55,7 @@ public class Biome {
     }
 
     private void setForest() {
-        energyGrowth = 2.0;
+        energyGrowth = 1.4;
         energySpread = 0.3;
         movementMult = 0.4;
     }
@@ -63,12 +64,13 @@ public class Biome {
         energyGrowth=0.2;
         energySpread=2.0;
         movementMult=0.3;
+        temperature = 1.5;
     }
 
     private void setSwamp() {
-        energyGrowth=3.2;
+        energyGrowth=2.0;
         energySpread=0.2;
-        movementMult=0.15;
+        movementMult=0.6;
     }
 
     private void setCoast() {
@@ -80,7 +82,7 @@ public class Biome {
     private void setMountain() {
         energyGrowth=0.5;
         energySpread=1.0;
-        movementMult=0.1;
+        movementMult=0.4;
     }
 
     private void setJungle() {
@@ -93,6 +95,7 @@ public class Biome {
         energyGrowth=0.5;
         energySpread=0.6; //or 1.0
         movementMult=0.8;
+        temperature = 0.1; // Cold!
         // insert age damage reduction
     }
 
@@ -194,9 +197,14 @@ public class Biome {
         return movementMult;
     }
 
+    public double getDecompRate () {
+        return 1.0;
+    }
+
     public String getBiomeName () {
         return biomeName;
     }
+
 
 
 }

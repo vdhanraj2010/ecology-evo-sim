@@ -10,6 +10,9 @@ public class Genes {
     int maxHP;
     int size;
     double absorb_d; //This is the factor passed down for absorb distance, raw (before curving)
+    double repro_d;
+    int clusterAmt;
+    double visionDist;
     // String heritage; //ID of bird
     int[] speciesCode;
 
@@ -21,8 +24,10 @@ public class Genes {
         resistance = Math.random();
         fertility = 1.0-resistance;
         absorb_d = Math.random()*50+2; //this is the gene for absorb before the logarithmic curve (explained more in Bird tab)
-        maxHP = (int)(Math.random() * 50 + 5 - absorb_d/2);
+        repro_d = Math.random()*50+2;
+        maxHP = (int)(Math.random() * 100 + 5 - absorb_d);
         maxHP = Math.max(5, maxHP); //IDEA: r-select vs k-select. more HP means less cluster babies, but less hp = more babies
+        visionDist = 0; //birds start with blindness, have to evolve sight
         speciesCode = new int[] {1000, 1000, 1000, 1000};
 
 
@@ -56,7 +61,7 @@ public class Genes {
         newMaxHP = mutateInt(newSpecCode, newMaxHP, 2);
 
         double newResistance = average(a.resistance, b.resistance);
-        newResistance = mutateDouble(newSpecCode, newResistance, 0.1);
+        newResistance = mutateDouble(newSpecCode, newResistance, 0.05);
 
         double newAbsorbD = average(a.absorb_d, b.absorb_d);
         newAbsorbD = mutateDouble(newSpecCode, newAbsorbD, 3);
@@ -104,7 +109,7 @@ public class Genes {
     private static double mutateDouble(int[] newSpecCode, double value, double range) { /// double mutation
         double mutation = 0.0;
         if (Math.random()<0.01) {
-             mutation = (Math.random()*10 - 20) * range;
+             mutation = (Math.random()*20 - 10) * range;
              mutateSpecCode(newSpecCode, 5);
 
         } else if (Math.random()<0.1) {
@@ -118,7 +123,7 @@ public class Genes {
         //int mutation = (int)((Math.random() - 0.5) * range);
         double mutation = 0.0;
         if (Math.random()<0.01) {
-            mutation = (Math.random()*10 - 20) * range;
+            mutation = (Math.random()*20 - 10) * range;
             mutateSpecCode(newSpecCode, 5);
         } else if (Math.random()<0.1) {
             mutation = (Math.random() - 0.5) * range;

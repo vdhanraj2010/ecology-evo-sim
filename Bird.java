@@ -1,5 +1,6 @@
 package populationPlay;// import statements
 import java.util.ArrayList;
+import java.awt.Color;
 
 public class Bird {
     private int[] stats;
@@ -16,6 +17,7 @@ public class Bird {
     public String biomeIn;
     public Biome currBiome;
     public static int worldSize;
+    private boolean immortal = false;
 
 
     private static int id = 1; //id number that starts all origin birds
@@ -95,6 +97,9 @@ public class Bird {
             die_age = age;
             deathList.add(this);
             deathYear= cycleNum;
+
+            //System.out.println("WE COUDL BE IMMORTAL");
+            immortal = true;
             //later make older bird more likely to die
         } else {
 
@@ -105,12 +110,13 @@ public class Bird {
                 deathCauseDone=1;
             }
 
-            if(juvenile){ //underage
-                hp -= 1;
-            } else if (age>=10 && juvenile) { //IDEA: make juvenile scale a gene, early mature means less lifespan
+            if (age>=10 && juvenile) { //IDEA: make juvenile scale a gene, early mature means less lifespan
                 juvenile = false;
             }
-            hp -=5;
+            if(juvenile){ //underage
+                hp -= 1;
+            }
+            hp -= (5 + age/50*2);
             if (hp<=0 && deathCauseDone==0) {
                 deathCause="hunger";
                 deathCauseDone=1;
@@ -134,7 +140,7 @@ public class Bird {
     }
 
     private int move(double speed) {
-        double distance = Math.pow(Math.random(), 1.0/1.5)*speed;  // later, want to make the root factor a gene as well
+        double distance = Math.pow(Math.random(), 1.0/1.5)*speed;  // later, want to make the root factor a gene as well, originallt 1.0/1.5, made it 0.5/1.5 to make world bigger
 
         double dir = Math.random()*Math.PI*2; // angle in radians of movement
         int dx = (int) (Math.cos(dir)*distance); // make a vector with magnitude distance
@@ -142,16 +148,11 @@ public class Bird {
 
         //check to make sure it isn't crossing bounds; if so, then it wraps around, like a globe
         int newX = (position[0]+dx);
-        newX = (newX>=worldSize) ? newX-worldSize : newX;
-        newX = (newX<0) ? newX+worldSize : newX;
         int newY = position[1]+dy;
-        newY = (newY>=worldSize) ? newY-worldSize : newY;
-        newY = (newY<0) ? newY+worldSize : newY;
-
 
         //int[] position = {newX, newY};// changes position
-        position[0]=newX;
-        position[1]=newY;
+        position[0]=(newX+100)%worldSize;
+        position[1]=(newY+100)%worldSize;
 
         //Later project: incrementally cover distance,
         /* int tempx = 0;
@@ -164,7 +165,7 @@ public class Bird {
         //might make return move distance for viewerscape later
 
         //System.out.println("Bird " + myID + " moved " + (int)distance);
-        return (int)distance;
+        return (int)(distance*speed);
     }
 //BOTH absorbEnergy and tryReproduce selection and confirmation is handled by the World
     public void absorbEnergy (Energy e) {
@@ -209,10 +210,10 @@ public class Bird {
 //            b2SpecLim = Integer.parseInt(b2IdNum[b2IdNum.length-specLim]);
 //        }
 
-        double specDiff = Math.sqrt(Math.pow(myGenes.speciesCode[0]-b2.getGenes().speciesCode[0], 2) + Math.pow(myGenes.speciesCode[1]-b2.getGenes().speciesCode[1], 2) +
-                Math.pow(myGenes.speciesCode[2]-b2.getGenes().speciesCode[2], 2) + Math.pow(myGenes.speciesCode[3]-b2.getGenes().speciesCode[3], 2)); // distance between species code vectors determine
+        double specDiffSqr = Math.pow(myGenes.speciesCode[0]-b2.getGenes().speciesCode[0], 2) + Math.pow(myGenes.speciesCode[1]-b2.getGenes().speciesCode[1], 2) +
+                Math.pow(myGenes.speciesCode[2]-b2.getGenes().speciesCode[2], 2) + Math.pow(myGenes.speciesCode[3]-b2.getGenes().speciesCode[3], 2); // distance between species code vectors determine
 
-        if (fertility>=Math.random() && age>=minAge && hp>maxHP*0.7 && specDiff<=specLim) {  // if fertile and of age (yes, 10 is considered the min. reproductive age of them), then they can mate
+        if (fertility>=Math.random() && age>=minAge && hp>maxHP*0.7 && specDiffSqr<=specLim*specLim) {  // if fertile and of age (yes, 10 is considered the min. reproductive age of them), then they can mate
             Genes newGenes = Genes.recombine(this.getGenes(), b2.getGenes());
             String newID = createNewID();
 
@@ -220,13 +221,10 @@ public class Bird {
             int newY = position[1] + (int)((Math.random()*absorb_rad*2)-absorb_rad); //IDEA: gene for spawn radius
 
             //check to make sure it isn't crossing bounds; if so, then it wraps around, like a globe]
-            newX = (newX>=worldSize) ? newX-worldSize : newX;
-            newX = (newX<0) ? newX+worldSize : newX;
-
-            newY = (newY>=worldSize) ? newY-worldSize : newY;
-            newY = (newY<0) ? newY+worldSize : newY;
-
+            newX = (newX+100)%worldSize;
+            newY = (newY+100)%worldSize;
             //int[] position = {newX, newY};// changes position
+
             position[0]=newX;
             position[1]=newY;
 
@@ -291,6 +289,8 @@ public class Bird {
     }
 
 
+
+
     public boolean inRadius(int[] otherPos) { // uses THIS radius and other (energy or bird) position
         if (Math.hypot(this.position[0] - otherPos[0], this.position[1] - otherPos[1]) <= absorb_rad && juvenile) {
             return true;
@@ -303,12 +303,24 @@ public class Bird {
         /// need to make it so that it interacts based on size boundary, NOT center position
     }
 
+    public Color getSpeciesColor() {
+        int[] code = this.myGenes.speciesCode; // Accesses the [4] length array
+
+        // 1. Center the baseline around 1000.
+        // This scales a shift of +/- 150 into a usable 0-255 RGB range.
+        int r = Math.max(0, Math.min(255, 128 + (code[0] - 1000) * 10));
+        int g = Math.max(0, Math.min(255, 128 + (code[1] - 1000) * 10));
+        int b = Math.max(0, Math.min(255, 128 + (code[2] - 1000) * 10));
+
+        return new Color(r, g, b);
+    }
+
     @Override
     public String toString() {
         if (alive) {
-            return "Bird #" + myID + " - age: " + age + " - children: " + reproID + " - hp: " + hp + "/" + maxHP + " - position: ("+ getPosition()[0] + ", " + getPosition()[1] + ") - biome: " + biomeIn + "\t\t\t" + myGenes;
+            return "Bird #" + myID + " - age: " + age + " - children: " + reproID + " - hp: " + hp + "/" + maxHP + " - position: ("+ getPosition()[0] + ", " + getPosition()[1] + ") - biome: " + biomeIn +" - immortal" + immortal + "\t\t\t" + myGenes;
         } else {
-            return "Bird #" + myID + " - dead at " + die_age + " - children: " + reproID + " - died in year " + deathYear + " - died of " + deathCause + " - " + myGenes;
+            return "Bird #" + myID + " - dead at " + die_age + " - children: " + reproID + " - died in year " + deathYear + " - died of " + deathCause +  " - immortal" + immortal +" - " + myGenes;
         }
     }
 
@@ -335,7 +347,6 @@ public class Bird {
 //        //nothing yet
 //    };
 //}
-
 //-------------------------------------------------------------
 //
 //private int[] randomize(){
@@ -369,3 +380,4 @@ public class Bird {
  * - use absorb_d for reproduction for now*/
 
 
+// git commit -m "slightly improved biomes, not too different; made searching and interaction systems streamlined and less time-consuming to prep for intelligence systems, started energy decomp system"
