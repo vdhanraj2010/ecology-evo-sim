@@ -77,7 +77,7 @@ public class main {
                     myWorld.energyCycle(0.2, 3, 10, 3);
                     myWorld.popSave(0, 5, 1000); // this now also dispenses 1000/popSize energy // usually 5, 5, 1000
                     myWorld.oneTick(5, 10, past + i, 10, 10);
-                    myWorld.pause(0.00);
+                    myWorld.pause(0.01);
                     panel.repaint();
                     myWorld.genResults(10);
 

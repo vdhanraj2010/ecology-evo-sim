@@ -14,6 +14,10 @@ public class Bird {
     private double fertility;
     private int size;
     private double absorb_rad;
+    private double repro_rad;
+    private double visionDist;
+    private double energyOrientBias;
+    private double momentumAngle;
     public String biomeIn;
     public Biome currBiome;
     public static int worldSize;
@@ -39,8 +43,10 @@ public class Bird {
         resistance = genes.getResistance();
         fertility = genes.fertility;
         hp = maxHP;
-        absorb_rad = Math.pow(genes.getAbsorb(), 1.0/2) ; //uses a cbrt curve to determine the effect of the distance of absorption
-
+        absorb_rad = Math.pow(genes.getAbsorb(), 1.0/2) ; //uses a sqrt curve to determine the effect of the distance of absorption
+        repro_rad = Math.pow(genes.getRepro(), 1.0/2) ;
+        energyOrientBias = genes.getEnergyOrientBias();
+        visionDist = genes.getVisionDist();
 
 
     }
@@ -80,7 +86,7 @@ public class Bird {
         worldSize=wSize;
     }
 
-    public void lifeCycle(ArrayList<Bird> deathList, int cycleNum, Biome[][] biomeMap) {
+    public void lifeCycle(ArrayList<Bird> deathList, int cycleNum, Biome[][] biomeMap, ArrayList<Energy> nearbyEnergy, ArrayList<Bird> nearbyBirds) {
 
         currBiome = biomeMap[position[0]][position[1]];
         biomeIn = currBiome.getBiomeName();
@@ -104,7 +110,7 @@ public class Bird {
         } else {
 
 
-            hp-= move(speed*movementFactor);
+            hp-= move(speed*movementFactor, nearbyEnergy);
             if (hp<=0 && deathCauseDone==0) {
                 deathCause="movement";
                 deathCauseDone=1;
@@ -139,10 +145,14 @@ public class Bird {
         age++; // we will let the dead birds age to see each one's stats
     }
 
-    private int move(double speed) {
-        double distance = Math.pow(Math.random(), 1.0/1.5)*speed;  // later, want to make the root factor a gene as well, originallt 1.0/1.5, made it 0.5/1.5 to make world bigger
 
-        double dir = Math.random()*Math.PI*2; // angle in radians of movement
+    private int move(double speed, ArrayList<Energy> nearbyEnergy) {
+        double distance = Math.pow(Math.random(), 0.75/1.5)*speed;  // later, want to make the root factor a gene as well, originallt 1.0/1.5, made it 0.5/1.5 to make world bigger
+
+        double randomDir = Math.random()*Math.PI*2; // angle in radians of movement
+        //double dir = randomDir;
+        double dir = energyOrientBias*angleToClosestEnergy(visionDist, nearbyEnergy) + randomDir*(1-energyOrientBias);
+        momentumAngle = dir;
         int dx = (int) (Math.cos(dir)*distance); // make a vector with magnitude distance
         int dy = (int) (Math.sin(dir)*distance);
 
@@ -151,8 +161,8 @@ public class Bird {
         int newY = position[1]+dy;
 
         //int[] position = {newX, newY};// changes position
-        position[0]=(newX+100)%worldSize;
-        position[1]=(newY+100)%worldSize;
+        position[0]=(newX+worldSize)%worldSize;
+        position[1]=(newY+worldSize)%worldSize;
 
         //Later project: incrementally cover distance,
         /* int tempx = 0;
@@ -169,7 +179,7 @@ public class Bird {
     }
 //BOTH absorbEnergy and tryReproduce selection and confirmation is handled by the World
     public void absorbEnergy (Energy e) {
-        hp+=e.consume()/absorb_rad*10;
+        hp+= (int) (e.consume()/absorb_rad*10);
 
         if (hp>maxHP) {
             hp = maxHP;
@@ -217,12 +227,12 @@ public class Bird {
             Genes newGenes = Genes.recombine(this.getGenes(), b2.getGenes());
             String newID = createNewID();
 
-            int newX = position[0] + (int)((Math.random()*absorb_rad*2)-absorb_rad);// spawns baby in absorb radius
-            int newY = position[1] + (int)((Math.random()*absorb_rad*2)-absorb_rad); //IDEA: gene for spawn radius
+            int newX = position[0] + (int)((Math.random()*repro_rad*2)-repro_rad);// spawns baby in absorb radius
+            int newY = position[1] + (int)((Math.random()*repro_rad*2)-repro_rad); //IDEA: gene for spawn radius --DONE!!
 
             //check to make sure it isn't crossing bounds; if so, then it wraps around, like a globe]
-            newX = (newX+100)%worldSize;
-            newY = (newY+100)%worldSize;
+            newX = (newX+worldSize)%worldSize;
+            newY = (newY+worldSize)%worldSize;
             //int[] position = {newX, newY};// changes position
 
             position[0]=newX;
@@ -288,6 +298,14 @@ public class Bird {
         return maxHP;
     }
 
+    public double getAbsorbRad() {
+        return absorb_rad;
+    }
+
+    public double getReproRad() {
+        return repro_rad;
+    }
+
 
 
 
@@ -303,10 +321,43 @@ public class Bird {
         /// need to make it so that it interacts based on size boundary, NOT center position
     }
 
+    public double angleToClosestEnergy(double radius, ArrayList<Energy> nearbyList) {
+
+        Energy closestEnergy = getClosestEnergy(radius, nearbyList);
+
+        if (closestEnergy == null){
+            return momentumAngle;
+        }
+
+        int dx = this.getPosition()[0] - closestEnergy.getPosition()[0];
+        int dy = this.getPosition()[1] - closestEnergy.getPosition()[1];
+        double energyAngle = Math.atan2((float) dy, (float) dx); //get the angle in radians of the vector from the bird to the closest energy wrt the x-axis
+
+        return energyAngle;
+    }
+
+    private Energy getClosestEnergy(double radius, ArrayList<Energy> nearbyList) {
+        double closestDistSqr = radius * radius;
+        Energy closestEnergy = null;
+
+        for (Energy e : nearbyList) {
+
+            int dx = this.getPosition()[0] - e.getPosition()[0];
+            int dy = this.getPosition()[1] - e.getPosition()[1];
+
+            double distSqr = dx * dx + dy * dy;
+
+            if (distSqr < closestDistSqr * closestDistSqr && distSqr < radius * radius) {
+                closestDistSqr = distSqr;
+                closestEnergy = e;
+            }
+        } //now we have should the closest energy
+        return closestEnergy;
+    }
+
     public Color getSpeciesColor() {
         int[] code = this.myGenes.speciesCode; // Accesses the [4] length array
 
-        // 1. Center the baseline around 1000.
         // This scales a shift of +/- 150 into a usable 0-255 RGB range.
         int r = Math.max(0, Math.min(255, 128 + (code[0] - 1000) * 10));
         int g = Math.max(0, Math.min(255, 128 + (code[1] - 1000) * 10));

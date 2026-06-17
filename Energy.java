@@ -23,14 +23,16 @@ public class Energy {
     }
 
     public Energy(int[] start) {
-        randomize();
-        position = start;
+        int r = (int) (1000 * Math.random());
+        this.size = (int) (r % 10) + 1;
+        this.position = start;
+        this.age = 0;
     }
 
     public Energy(int[] start, int newSize) {
-        randomize();
-        position = start;
-        size = newSize;
+        this.position = start;
+        this.size = newSize;
+        this.age = 0;
         //stats = start; // generate energy in a specific area, specific size
     }
 
@@ -60,10 +62,10 @@ public class Energy {
 
             }
         } else if (decompGrid[this.position[0]][this.position[1]]>0 && !isSprouted()) {
-            this.consume();
+            if (Math.random()<0.0) {this.consume();}
         } else {
             // this means it is a seed and in the decomp zone, so just freezes growth
-            System.out.println("Seed Frozen");
+            //System.out.println("Seed Frozen");
         }
     }
 
@@ -89,8 +91,8 @@ public class Energy {
 
             //int[] position = {newX, newY};// changes position
 
-            position[0]=newX;
-            position[1]=newY;
+            //position[0]=newX;
+            //position[1]=newY;
 
 
             // child gets most
@@ -100,7 +102,7 @@ public class Energy {
             size -= childSize;
 
             // Stage or instantiate your new seed object
-            myWorld.sporeEnergy(new int[] {newX, newY}, this.size);
+            myWorld.sporeEnergy(new int[] {newX, newY}, childSize);
 
 
         }
