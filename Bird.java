@@ -43,7 +43,7 @@ public class Bird {
         resistance = genes.getResistance();
         fertility = genes.fertility;
         hp = maxHP;
-        absorb_rad = Math.pow(genes.getAbsorb(), 1.0/2) ; //uses a sqrt curve to determine the effect of the distance of absorption
+        absorb_rad = Math.pow(genes.getAbsorb(), 1.0/2) ; //uses a cbrt curve to determine the effect of the distance of absorption
         repro_rad = Math.pow(genes.getRepro(), 1.0/2) ;
         energyOrientBias = genes.getEnergyOrientBias();
         visionDist = genes.getVisionDist();
@@ -145,13 +145,12 @@ public class Bird {
         age++; // we will let the dead birds age to see each one's stats
     }
 
-
-    private int move(double speed, ArrayList<Energy> nearbyEnergy) {
+    private int move(double speed, ArrayList<Energy> nearbyEnergy){
         double distance = Math.pow(Math.random(), 0.75/1.5)*speed;  // later, want to make the root factor a gene as well, originallt 1.0/1.5, made it 0.5/1.5 to make world bigger
 
         double randomDir = Math.random()*Math.PI*2; // angle in radians of movement
         //double dir = randomDir;
-        double dir = energyOrientBias*angleToClosestEnergy(visionDist, nearbyEnergy) + randomDir*(1-energyOrientBias);
+       double dir = energyOrientBias*angleToClosestEnergy(visionDist, nearbyEnergy) + randomDir*(1-energyOrientBias);
         momentumAngle = dir;
         int dx = (int) (Math.cos(dir)*distance); // make a vector with magnitude distance
         int dy = (int) (Math.sin(dir)*distance);
@@ -175,11 +174,11 @@ public class Bird {
         //might make return move distance for viewerscape later
 
         //System.out.println("Bird " + myID + " moved " + (int)distance);
-        return (int)(distance*speed);
+        return (int)(distance);//*speed);
     }
 //BOTH absorbEnergy and tryReproduce selection and confirmation is handled by the World
     public void absorbEnergy (Energy e) {
-        hp+= (int) (e.consume()/absorb_rad*10);
+        hp+=(int) (e.consume()/absorb_rad*10);
 
         if (hp>maxHP) {
             hp = maxHP;
@@ -331,7 +330,7 @@ public class Bird {
 
         int dx = this.getPosition()[0] - closestEnergy.getPosition()[0];
         int dy = this.getPosition()[1] - closestEnergy.getPosition()[1];
-        double energyAngle = Math.atan2((float) dy, (float) dx); //get the angle in radians of the vector from the bird to the closest energy wrt the x-axis
+        double energyAngle = Math.atan2((float) -dy, (float) dx); //get the angle in radians of the vector from the bird to the closest energy wrt the x-axis
 
         return energyAngle;
     }
@@ -341,15 +340,16 @@ public class Bird {
         Energy closestEnergy = null;
 
         for (Energy e : nearbyList) {
+            if (e.isSprouted()) {
+                int dx = this.getPosition()[0] - e.getPosition()[0];
+                int dy = this.getPosition()[1] - e.getPosition()[1];
 
-            int dx = this.getPosition()[0] - e.getPosition()[0];
-            int dy = this.getPosition()[1] - e.getPosition()[1];
+                double distSqr = dx * dx + dy * dy;
 
-            double distSqr = dx * dx + dy * dy;
-
-            if (distSqr < closestDistSqr * closestDistSqr && distSqr < radius * radius) {
-                closestDistSqr = distSqr;
-                closestEnergy = e;
+                if (distSqr < closestDistSqr * closestDistSqr && distSqr < radius * radius) {
+                    closestDistSqr = distSqr;
+                    closestEnergy = e;
+                }
             }
         } //now we have should the closest energy
         return closestEnergy;

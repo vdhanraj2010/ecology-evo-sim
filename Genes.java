@@ -28,8 +28,8 @@ public class Genes {
         repro_d = Math.random()*50+2;
         maxHP = (int)(Math.random() * 100 + 5 - absorb_d);
         maxHP = Math.max(5, maxHP); //IDEA: r-select vs k-select. more HP means less cluster babies, but less hp = more babies
-        visionDist = 0; //birds start with blindness, have to evolve sight
-        energyOrientBias = 0;
+        visionDist = 5; //birds start with blindness, have to evolve sight
+        energyOrientBias = 1;
         clusterAmt = 5;
         speciesCode = new int[] {1000, 1000, 1000, 1000};
 
@@ -62,7 +62,7 @@ public class Genes {
         int newSize = (Math.random() < 0.5) ? a.size : b.size; //takes 50% either parent size
 
         double newSpeed = average(a.speed, b.speed);
-        newSpeed = mutateDouble(newSpecCode, newSpeed, 0.2);
+        newSpeed = mutateDouble(newSpecCode, newSpeed, 1);
 
         int newMaxHP = (int) Math.round(average(a.maxHP, b.maxHP));
         newMaxHP = mutateInt(newSpecCode, newMaxHP, 2);
@@ -77,10 +77,10 @@ public class Genes {
         newReproD = mutateDouble(newSpecCode, newReproD, 3);
 
         double newVisionDist = average(a.visionDist, b.visionDist);
-        newVisionDist = Math.max(mutateDouble(newSpecCode, newVisionDist, 2), 0);
+        newVisionDist = mutateDouble(newSpecCode, newVisionDist, 3);
 
         double newEnOrientBias = average(a.energyOrientBias, b.energyOrientBias);
-        newVisionDist = Math.max(mutateDouble(newSpecCode, newVisionDist, 0.1), 0);
+        newEnOrientBias = mutateDouble(newSpecCode, newEnOrientBias, 0.1);
 
 
         /*
@@ -91,6 +91,9 @@ public class Genes {
         newMaxHP = Math.max(1, newMaxHP);
         newResistance = Math.max(0, Math.min(1, newResistance));
         newAbsorbD = Math.max(0.5, newAbsorbD);
+        newReproD = Math.max(0.5, newReproD);
+        newVisionDist = Math.max(newVisionDist, 0);
+        newEnOrientBias = Math.max(Math.min(newEnOrientBias, 1), 0);
 
         return new Genes(newSize, newSpeed, newMaxHP, newResistance, newAbsorbD, newReproD, newVisionDist, newEnOrientBias, newSpecCode);
     }

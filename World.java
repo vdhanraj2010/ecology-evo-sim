@@ -19,7 +19,7 @@ public class World {
     String biomeGrid;
     int worldSize;
     double bucketSize;
-    final int numBuckets = 20;
+    final int numBuckets = 10;
 
 
     int enCount = 0;
@@ -54,6 +54,7 @@ public class World {
         this.birdGrid = new ArrayList[numBuckets][numBuckets];
         this.energyGrid = new ArrayList[numBuckets][numBuckets];
 
+
         for (int x = 0; x < numBuckets; x++) { //init the arrays so it doesnt error when clear
             for (int y = 0; y < numBuckets; y++) {
                 birdGrid[x][y] = new ArrayList<>();
@@ -71,27 +72,23 @@ public class World {
         ArrayList<Bird> newDeaths = new ArrayList<Bird>();
         for (Bird b : aliveList) { /// for each bird, if its alive then run life cycle and try eating + reproducing
 
-            ArrayList<Energy> nearbyEnergyList = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getAbsorbRad(), energyGrid); //find all nearby energy in absorbR
-            ArrayList<Bird> nearbyBirdList = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getReproRad(), birdGrid); //find all nearby birds in absorbR -- IF we make another reproRad gene, this will need to be switched out
-            b.lifeCycle(deathList, cycleNum, biomeMap, nearbyEnergyList, nearbyBirdList); /// need to try making a list of deaths in order and why -- Done!
+            ArrayList<Energy> visionEnergy = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getAbsorbRad(), energyGrid); //find all nearby energy in absorbR
+            ArrayList<Bird> visionBirds = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getReproRad(), birdGrid); //find all nearby birds in absorbR -- IF we make another reproRad gene, this will need to be switched out
+            b.lifeCycle(deathList, cycleNum, biomeMap, visionEnergy, visionBirds); /// need to try making a list of deaths in order and why -- Done!
 
-            nearbyEnergyList = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getAbsorbRad(), energyGrid); //find all nearby energy in absorbR
-            nearbyBirdList = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getReproRad(), birdGrid);
         //insert grid reset
             if (b.alive) {
-                for (Energy e : nearbyEnergyList) {
-                    System.out.println(Arrays.toString(b.getPosition()) + " and " + Arrays.toString(e.getPosition()));
+                ArrayList<Energy> nearbyEnergyList = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getAbsorbRad(), energyGrid); //find all nearby energy in absorbR
+                ArrayList<Bird> nearbyBirdList = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getReproRad(), birdGrid);
 
+                for (Energy e : nearbyEnergyList) {
                     if ((b.inRadius(e.getPosition()) && b.getHP()<b.getMaxHP()) && (e.getSize() > 0 && e.isSprouted())) { // if energy is in radius AND available
                         b.absorbEnergy(e);
-                        System.out.println("EATEN!!!");
-                        //problem in this check
                     }
                 }
 
                 /// reproduce check
                 for (Bird b2 : nearbyBirdList) {
-                    System.out.println(Arrays.toString(b.getPosition()) + " and fnnily " + Arrays.toString(b2.getPosition()));
                     if (b.inRadius(b2.getPosition()) && (b2 != b) && b2.alive ){//&& b.getAge()>minAge) { // if Bird2 is not the same bird (no self-incest!!!) and not dead (no necrophilia!!!), then try reproducing (doesnt always work :(   )
                         for (int i=0; i<(Math.random()*cluster); i++) {
                             b.tryReproduce(b2, newBorns, this, minAge, specLim); //minAge not needed anymore
@@ -109,11 +106,9 @@ public class World {
                 newDeaths.add(b);
             }
         }
-        for (Bird n : newBorns) {
-            birdList.add(n);
-            aliveList.add(n);
-        }
 
+        birdList.addAll(newBorns);
+        aliveList.addAll(newBorns);
         aliveList.removeAll(newDeaths);
 
         for (int deX=0; deX<decompGrid.length; deX++) {
@@ -261,7 +256,6 @@ public class World {
         inBucketY = Math.max(0, Math.min(inBucketY, numBuckets - 1));
 
         int buckRadius = (int) Math.ceil(searchRadius/bucketSize);
-        System.out.println(""+searchRadius+" "+bucketSize+" "+buckRadius);
         buckRadius = Math.min(buckRadius, numBuckets / 2); //so it doesnt count same bucket
 
         for (int dx=-buckRadius; dx<=buckRadius; dx++) {
@@ -594,7 +588,7 @@ public class World {
                 "\n Average Alive Age: " + alAgeAv + " - Average Death Age: " + ddAgeAv);
         System.out.println("Alive: " + alNum + " - Dead: " + ddNum + " - Partho Count: " + parthCount + " - Birth Count: " + birdList.size());
 
-        //System.out.println("Biomes set to map: \n\n"+setBiomeMap(bType)+ "\n");
+       // System.out.println("Biomes set to map: \n\n"+setBiomeMap(bType)+ "\n");
 
     };
 
@@ -613,7 +607,7 @@ public class World {
             }
         }
 
-        System.out.println("\n\n " + (enCount-usableEnergyList.size()) + "   " + enCount);
+        // System.out.println("\n\n " + (enCount-usableEnergyList.size()) + "   " + enCount);
     }
 
     public void wipeOut() {

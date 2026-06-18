@@ -18,7 +18,7 @@ public class main {
         String reroll = "";
         while (!reroll.equals("c")) {
             myWorld.wipeOut();
-            myWorld.spawnBirds(200, 0);
+            myWorld.spawnBirds(100, 0);
             System.out.println("Here is the new starting population: \n");
             myWorld.genResults(50);
             System.out.print("\nContinue or reroll? (type 'c' or 'r' respectively)? \n\t>>> ");
@@ -74,10 +74,10 @@ public class main {
                     //myWorld.spawnEnergy((int)(200.0 / myWorld.aliveList.size())); //check Notes for stats - stopped using this and made it self-contained
                     myWorld.spawnEnergy((int)(0)); //test
                     //Ideas: spawn = random(0, maxEnergyPool) OR spawn = (int)(120 / Math.sqrt(aliveCount));
-                    myWorld.energyCycle(0.2, 3, 10, 3);
+                    myWorld.energyCycle(0.2, 3, 7, 3);
                     myWorld.popSave(0, 5, 1000); // this now also dispenses 1000/popSize energy // usually 5, 5, 1000
                     myWorld.oneTick(5, 10, past + i, 10, 10);
-                    myWorld.pause(0.01);
+                    myWorld.pause(0.05);
                     panel.repaint();
                     myWorld.genResults(10);
 
