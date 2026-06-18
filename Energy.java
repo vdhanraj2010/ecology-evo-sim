@@ -16,6 +16,7 @@ public class Energy {
     public int decompCount=0;
     private int[] position;
 
+    // later optimize to make them not randomzie every time
     public Energy() {
         // stats = randomize();
         randomize();
@@ -60,10 +61,12 @@ public class Energy {
 
             }
         } else if (decompGrid[this.position[0]][this.position[1]]>0 && !isSprouted()) {
-            this.consume();
+            if (Math.random()<0.1) {
+                this.consume();
+            }
         } else {
             // this means it is a seed and in the decomp zone, so just freezes growth
-            System.out.println("Seed Frozen");
+            //System.out.println("Seed Frozen");
         }
     }
 
@@ -89,8 +92,8 @@ public class Energy {
 
             //int[] position = {newX, newY};// changes position
 
-            position[0]=newX;
-            position[1]=newY;
+            //position[0]=newX;
+            //position[1]=newY;
 
 
             // child gets most
@@ -107,7 +110,7 @@ public class Energy {
     }
 
     public boolean isSprouted() {
-        if (age>3) {
+        if (age>2) {
             return true;
         } else {
             return false;
@@ -135,7 +138,7 @@ public class Energy {
     public int consume() {
         int food = size;
         size = 0;
-        decompCount=5;
+        decompCount=3;
         return food;
     }
 

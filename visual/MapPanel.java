@@ -38,7 +38,7 @@ public class MapPanel extends JPanel {
         g2.fillRect(0, 0, getWidth(), getHeight());
 
         // biomes
-        int scaleFactor = 4;
+        int scaleFactor = 5;
         int worldActSize = scaleFactor*worldSize;
         g2.setColor(forestColor);
         g2.fillRect(0, 0, worldActSize/2, worldActSize/2);
@@ -50,10 +50,15 @@ public class MapPanel extends JPanel {
         g2.fillRect(worldActSize/2, worldActSize/2, worldActSize/2, worldActSize/2);
 
         //draw energy
-        g2.setColor(Color.GREEN);
+        //g2.setColor(Color.GREEN);
 
         ArrayList<Energy> energySnapshot = new ArrayList<Energy>(world.getUsableEnergyList());
         for (Energy e : energySnapshot) {
+            if (e.isSprouted()) {
+                g2.setColor(Color.green);
+            } else {
+                g2.setColor(Color.YELLOW);
+            }
 
             int x = e.getPosition()[0] * scaleFactor;
             int y = e.getPosition()[1] * scaleFactor;

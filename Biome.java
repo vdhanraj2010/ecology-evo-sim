@@ -57,11 +57,11 @@ public class Biome {
     private void setForest() {
         energyGrowth = 1.4;
         energySpread = 0.3;
-        movementMult = 0.4;
+        movementMult = 0.6;
     }
 
     private void setDesert() {
-        energyGrowth=0.2;
+        energyGrowth=0.1;
         energySpread=2.0;
         movementMult=0.3;
         temperature = 1.5;
@@ -70,7 +70,7 @@ public class Biome {
     private void setSwamp() {
         energyGrowth=2.0;
         energySpread=0.2;
-        movementMult=0.6;
+        movementMult=0.4;
     }
 
     private void setCoast() {

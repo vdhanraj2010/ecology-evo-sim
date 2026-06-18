@@ -7,7 +7,7 @@ public class SimulationFrame extends JFrame {
     public SimulationFrame(MapPanel mapPanel) {
 
         setTitle("Evolution Simulator");
-        setSize(800, 600);
+            setSize(1000, 1000);
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 

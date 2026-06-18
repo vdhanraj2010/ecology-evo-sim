@@ -3,6 +3,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
+
 public class World {
      ArrayList<Bird> birdList;
     ArrayList<Bird> aliveList;
@@ -17,7 +19,7 @@ public class World {
     String biomeGrid;
     int worldSize;
     double bucketSize;
-    final int numBuckets = 20;
+    final int numBuckets = 10;
 
 
     int enCount = 0;
@@ -52,6 +54,14 @@ public class World {
         this.birdGrid = new ArrayList[numBuckets][numBuckets];
         this.energyGrid = new ArrayList[numBuckets][numBuckets];
 
+
+        for (int x = 0; x < numBuckets; x++) { //init the arrays so it doesnt error when clear
+            for (int y = 0; y < numBuckets; y++) {
+                birdGrid[x][y] = new ArrayList<>();
+                energyGrid[x][y] = new ArrayList<>();
+            }
+        }
+
         resetGrids();
     }
 
@@ -62,12 +72,15 @@ public class World {
         ArrayList<Bird> newDeaths = new ArrayList<Bird>();
         for (Bird b : aliveList) { /// for each bird, if its alive then run life cycle and try eating + reproducing
 
-            b.lifeCycle(deathList, cycleNum, biomeMap); /// need to try making a list of deaths in order and why
-            ArrayList<Energy> nearbyEnergyList = (ArrayList<Energy>) getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getGenes().getAbsorb(), energyGrid); //find all nearby energy in absorbR
-            ArrayList<Bird> nearbyBirdList = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getGenes().getAbsorb(), birdGrid); //find all nearby birds in absorbR -- IF we make another reproRad gene, this will need to be switched out
+            ArrayList<Energy> visionEnergy = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getAbsorbRad(), energyGrid); //find all nearby energy in absorbR
+            ArrayList<Bird> visionBirds = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getReproRad(), birdGrid); //find all nearby birds in absorbR -- IF we make another reproRad gene, this will need to be switched out
+            b.lifeCycle(deathList, cycleNum, biomeMap, visionEnergy, visionBirds); /// need to try making a list of deaths in order and why -- Done!
 
         //insert grid reset
             if (b.alive) {
+                ArrayList<Energy> nearbyEnergyList = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getAbsorbRad(), energyGrid); //find all nearby energy in absorbR
+                ArrayList<Bird> nearbyBirdList = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getReproRad(), birdGrid);
+
                 for (Energy e : nearbyEnergyList) {
                     if ((b.inRadius(e.getPosition()) && b.getHP()<b.getMaxHP()) && (e.getSize() > 0 && e.isSprouted())) { // if energy is in radius AND available
                         b.absorbEnergy(e);
@@ -93,15 +106,10 @@ public class World {
                 newDeaths.add(b);
             }
         }
-        for (Bird n : newBorns) {
-            birdList.add(n);
-            aliveList.add(n);
-        }
 
-        for (Bird d : newDeaths) {
-            aliveList.removeIf(a -> a == d);
-
-        }
+        birdList.addAll(newBorns);
+        aliveList.addAll(newBorns);
+        aliveList.removeAll(newDeaths);
 
         for (int deX=0; deX<decompGrid.length; deX++) {
             for (int deY=0; deY<decompGrid[0].length; deY++) {
@@ -208,8 +216,8 @@ public class World {
         // wipe old grids clean
         for (int x = 0; x < numBuckets; x++) {
             for (int y = 0; y < numBuckets; y++) {
-                birdGrid[x][y] = new ArrayList<>();
-                energyGrid[x][y] = new ArrayList<>();
+                birdGrid[x][y].clear();
+                energyGrid[x][y].clear();
             }
         }
 
@@ -580,7 +588,7 @@ public class World {
                 "\n Average Alive Age: " + alAgeAv + " - Average Death Age: " + ddAgeAv);
         System.out.println("Alive: " + alNum + " - Dead: " + ddNum + " - Partho Count: " + parthCount + " - Birth Count: " + birdList.size());
 
-        System.out.println("Biomes set to map: \n\n"+setBiomeMap(bType)+ "\n");
+       // System.out.println("Biomes set to map: \n\n"+setBiomeMap(bType)+ "\n");
 
     };
 
@@ -599,7 +607,7 @@ public class World {
             }
         }
 
-        System.out.println("\n\n " + (enCount-usableEnergyList.size()) + "   " + enCount);
+        // System.out.println("\n\n " + (enCount-usableEnergyList.size()) + "   " + enCount);
     }
 
     public void wipeOut() {
