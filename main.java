@@ -5,20 +5,21 @@ import populationPlay.visual.SimulationFrame;
 
 public class main {
     public static void main(String[] args) {
-        int worldSize = 200;
+        int worldSize = 500;
         Scanner scnr = new Scanner(System.in);
         World myWorld = new World(worldSize);
         MapPanel panel = new MapPanel(myWorld, worldSize);
         SimulationFrame frame = new SimulationFrame(panel);
 
-        myWorld.startUp("grid");
-        myWorld.spawnEnergy(500);
+       // myWorld.startUp("world_500-Hyrule");
+        myWorld.startUp("world_500-Paldea");
+        myWorld.spawnEnergy(10000);
         //myWorld.spawnEnergyMap(2, 5000);
 
         String reroll = "";
         while (!reroll.equals("c")) {
             myWorld.wipeOut();
-            myWorld.spawnBirds(100, 0);
+            myWorld.spawnBirds(10000, 0);
             System.out.println("Here is the new starting population: \n");
             myWorld.genResults(50);
             System.out.print("\nContinue or reroll? (type 'c' or 'r' respectively)? \n\t>>> ");
@@ -35,7 +36,7 @@ public class main {
 
         while (true) {
             System.out.print("\t>>> ");
-            String input = scnr.next().trim();
+            String input = scnr.nextLine().trim();
 
             // EXIT
             if (input.equals("stop") || input.equals("0")) {
@@ -72,12 +73,12 @@ public class main {
                 for (int i = 0; i < cycles - 1; i++) {
                     System.out.println("\n\tCycle " + ((int) i + past) + " >>> \n");
                     //myWorld.spawnEnergy((int)(200.0 / myWorld.aliveList.size())); //check Notes for stats - stopped using this and made it self-contained
-                    myWorld.spawnEnergy((int)(0)); //test
+                    // myWorld.spawnEnergy((int)(500)); //test
                     //Ideas: spawn = random(0, maxEnergyPool) OR spawn = (int)(120 / Math.sqrt(aliveCount));
-                    myWorld.energyCycle(0.2, 3, 7, 3);
+                    myWorld.energyCycle(0.2, 5, 10, 3);
                     myWorld.popSave(0, 5, 1000); // this now also dispenses 1000/popSize energy // usually 5, 5, 1000
                     myWorld.oneTick(5, 10, past + i, 10, 10);
-                    myWorld.pause(0.05);
+                    myWorld.pause(0.0);
                     panel.repaint();
                     myWorld.genResults(10);
 
@@ -88,7 +89,7 @@ public class main {
 
                 }
                 myWorld.spawnEnergy((int)(0)); //test
-                myWorld.energyCycle(0.50, 2, 5, 10);
+                myWorld.energyCycle(0.33, 5, 10, 10);
                 myWorld.endResults(5, 5, cycles);
                 panel.repaint();
                 //myWorld.printEnergyLayout();
@@ -146,9 +147,12 @@ i recently saw a video of a similar project. this guy used neurons instead and m
 while my roject is more realistic and self sustaining, i want to be able to make it more evolution based like that */
 
 /* Goals for version 1.2:
-* 1) biomes should be complete, with multiple rudimentary effects and a couple special ones
-* 2) birds should automatically form groupings, yet still move in directions, but also prefer a biome through strong  specific survival traits, using a new vision Gene
-* 3) birds should be able to make decisions on where to go, based on direction and a factor of nearby food and nearby birds of same species and nearby birds of otehr species and the random weight
-* 4) use the above to make a simple neural system resulting in two nerons: direction and speed (so a vecotr control), using multiple genetically coded receptors, including:
+* 1) biomes should be complete, with multiple rudimentary effects and a couple special ones --IN PROGRESS
+* 2) birds should automatically form groupings, yet still move in directions, but also prefer a biome through strong  specific survival traits, using a new vision Gene --DONE!!!
+* 3) birds should be able to make decisions on where to go, based on direction and a factor of nearby food and nearby birds of same species and nearby birds of otehr species and the random weight --DONE!!!
+* 4) use the above to make a simple neural system resulting in two nerons: direction and speed (so a vecotr control), using multiple genetically coded receptors, including: --speed is done, distance not yet
 * > crowd preference   >direction of food in vision (weight for size and distance)   >aggression/aversion to other species    >stress gene which says when to use extra energy resources based on hp%
-* ---the movement vecotr is categorized into: sensory genes, preference genes, and decision genes (stress +memory)*/
+* ---the movement vecotr is categorized into: sensory genes, preference genes, and decision genes (stress +memory) --stress IN PROGRESS
+* 5) make predator species, with red halo, triggered by a gene marking. omnivores maybe?
+* 6) make species categorized in prep for predation and categorization / nomenclature
+* 7) make an "average bird" for all, then for species -- for all, DONE!!, for species, not yet*/

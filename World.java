@@ -1,7 +1,5 @@
 package populationPlay;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -9,6 +7,10 @@ public class World {
      ArrayList<Bird> birdList;
     ArrayList<Bird> aliveList;
     ArrayList<Bird> deathList;
+    ArrayList<Bird> recentDeathList; //since accumulated dead birds are not necessary, i will make list of their statements, print them instead.
+    StringBuilder deathMemorandum;
+    ArrayList<Bird> localBirdList = new ArrayList<>();
+    ArrayList<Energy> localEnergyList = new ArrayList<>();
      ArrayList<Energy> energyList;
      ArrayList<Energy> usableEnergyList;
     int[][] decompGrid;
@@ -19,12 +21,27 @@ public class World {
     String biomeGrid;
     int worldSize;
     double bucketSize;
-    final int numBuckets = 10;
+    final int numBuckets = 50;
+
+    public static final Biome PLAINS = new Biome("P");
+    public static final Biome FOREST = new Biome("F");
+    public static final Biome DESERT = new Biome("D");
+    public static final Biome SWAMP = new Biome("S");
+    public static final Biome COAST = new Biome("C");
+    public static final Biome MOUNTAIN = new Biome("M");
+    public static final Biome JUNGLE = new Biome("J");
+    public static final Biome TUNDRA = new Biome("T");
+    public static final Biome VOLCANO = new Biome("V");
+    public static final Biome OCEAN = new Biome("O");
+
+
 
 
     int enCount = 0;
     int parthCount=0;
     int birthCount = 0;
+    int deathCount = 0;
+    int ddAgeSum = 0;
     String bType = "";
 
     public World (int worldSize) {
@@ -32,6 +49,8 @@ public class World {
         birdList = new ArrayList<Bird>();
         aliveList = new ArrayList<Bird> ();
         deathList = new ArrayList<Bird> ();
+        recentDeathList = new ArrayList<Bird> ();
+        deathMemorandum = new StringBuilder();
         energyList = new ArrayList<Energy>();
         usableEnergyList = new ArrayList<Energy>();
         energyLayout = new int[worldSize][worldSize]; //usually 100
@@ -72,26 +91,27 @@ public class World {
         ArrayList<Bird> newDeaths = new ArrayList<Bird>();
         for (Bird b : aliveList) { /// for each bird, if its alive then run life cycle and try eating + reproducing
 
-            ArrayList<Energy> visionEnergy = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getAbsorbRad(), energyGrid); //find all nearby energy in absorbR
-            ArrayList<Bird> visionBirds = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getReproRad(), birdGrid); //find all nearby birds in absorbR -- IF we make another reproRad gene, this will need to be switched out
-            b.lifeCycle(deathList, cycleNum, biomeMap, visionEnergy, visionBirds); /// need to try making a list of deaths in order and why -- Done!
+            ArrayList<Energy> visionEnergy = getNearbyOrgs(b.getPosition(), b.getGenes().getVisionDist(), localEnergyList, energyGrid); //find all nearby energy in absorbR
+            ArrayList<Bird> visionBirds = getNearbyOrgs(b.getPosition(), b.getGenes().getVisionDist(), localBirdList, birdGrid); //find all nearby birds in absorbR -- IF we make another reproRad gene, this will need to be switched out
+            b.lifeCycle(cycleNum, deathMemorandum, biomeMap, visionEnergy, visionBirds); /// need to try making a list of deaths in order and why -- Done!
 
         //insert grid reset
             if (b.alive) {
-                ArrayList<Energy> nearbyEnergyList = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getAbsorbRad(), energyGrid); //find all nearby energy in absorbR
-                ArrayList<Bird> nearbyBirdList = getNearbyOrgs(b.getPosition()[0], b.getPosition()[1], b.getReproRad(), birdGrid);
+                ArrayList<Energy> nearbyEnergyList = getNearbyOrgs(b.getPosition(), b.getAbsorbRad(), localEnergyList, energyGrid); //find all nearby energy in absorbR
+                ArrayList<Bird> nearbyBirdList = getNearbyOrgs(b.getPosition(), b.getReproRad(), localBirdList, birdGrid);
 
                 for (Energy e : nearbyEnergyList) {
-                    if ((b.inRadius(e.getPosition()) && b.getHP()<b.getMaxHP()) && (e.getSize() > 0 && e.isSprouted())) { // if energy is in radius AND available
+                    if ((b.inRadius(b.getAbsorbRad(), e.getPosition()) && b.getHP()<b.getMaxHP()) && (e.getSize() > 0 && e.isSprouted())) { // if energy is in radius AND available
                         b.absorbEnergy(e);
                     }
                 }
 
                 /// reproduce check
                 for (Bird b2 : nearbyBirdList) {
-                    if (b.inRadius(b2.getPosition()) && (b2 != b) && b2.alive ){//&& b.getAge()>minAge) { // if Bird2 is not the same bird (no self-incest!!!) and not dead (no necrophilia!!!), then try reproducing (doesnt always work :(   )
+                    if (b.inRadius(b.getReproRad(), b2.getPosition()) && (b2 != b) && b2.alive ){//&& b.getAge()>minAge) { // if Bird2 is not the same bird (no self-incest!!!) and not dead (no necrophilia!!!), then try reproducing (doesnt always work :(   )
                         for (int i=0; i<(Math.random()*cluster); i++) {
                             b.tryReproduce(b2, newBorns, this, minAge, specLim); //minAge not needed anymore
+                            if (b.getID().contains("Ave")) {System.out.println("i alive and happy");}   //   System.out.println(b.getID()+"wow");
                         }
                     }
                 }
@@ -104,12 +124,15 @@ public class World {
             } else {
                 //aliveList.removeIf(a -> a == b); ------ moved below to do by newDeaths
                 newDeaths.add(b);
+                deathCount++;
+                ddAgeSum+= b.getAge();
             }
         }
 
         birdList.addAll(newBorns);
         aliveList.addAll(newBorns);
         aliveList.removeAll(newDeaths);
+        recentDeathList.addAll(newDeaths);
 
         for (int deX=0; deX<decompGrid.length; deX++) {
             for (int deY=0; deY<decompGrid[0].length; deY++) {
@@ -129,7 +152,7 @@ public class World {
             double eSpread = currBiome.getEnergySpread();
 
           //  int nearby = nearbyEnergy(e, (int)(radius));
-            int nearby = nearbyEnergy(e, radius, getNearbyOrgs(e.getPosition()[0], e.getPosition()[1], radius, energyGrid));
+            int nearby = nearbyEnergy(e, radius, getNearbyOrgs(e.getPosition(), radius, localEnergyList, energyGrid)); //e.getPosition()[0], e.getPosition()[1]
             double chance = energyThresh * (1.0 - ((double) nearby / (maxLocalFood*eGrowth)));
 
             chance = Math.min(1, Math.max(0, chance));
@@ -206,10 +229,73 @@ public class World {
                 biomeDisplay+="\n";
             }
 
+        } else if (biomeType.equalsIgnoreCase("map3")) {
+            loadMapPreset("src/populationPlay/mapPresets", "map3.txt");
+
+        } else if (biomeType.equalsIgnoreCase("map4")) {
+            loadMapPreset("src/populationPlay/mapPresets", "map4.txt");
+
+        } else if (biomeType.equalsIgnoreCase("world_500-1")) {
+            loadMapPreset("src/populationPlay/mapPresets", "world_500-1.txt");
+
+        } else if (biomeType.equalsIgnoreCase("world_500-2")) {
+            loadMapPreset("src/populationPlay/mapPresets", "world_500-2.txt");
+
+        } else if (biomeType.equalsIgnoreCase("world_500-3")) {
+            loadMapPreset("src/populationPlay/mapPresets", "world_500-3.txt");
+
+        } else if (biomeType.equalsIgnoreCase("world_500-4")) {
+            loadMapPreset("src/populationPlay/mapPresets", "world_500-4.txt");
+
+        } else if (biomeType.equalsIgnoreCase("world_500-5")) {
+            loadMapPreset("src/populationPlay/mapPresets", "world_500-5.txt");
+
+        } else if (biomeType.equalsIgnoreCase("world_500-6")) {
+            loadMapPreset("src/populationPlay/mapPresets", "world_500-6.txt");
+
+        } else if (biomeType.equalsIgnoreCase("world_500-Hyrule")) {
+            loadMapPreset("src/populationPlay/mapPresets", "world_500-Hyrule.txt");
+
+        } else if (biomeType.equalsIgnoreCase("world_500-Paldea")) {
+            loadMapPreset("src/populationPlay/mapPresets", "organic_world_map_500x500.txt");
+
         } else {
-            System.out.print("Choose a preset biome map (grid): \n\t >>> ");
+            System.out.print("Choose a preset biome map (grid, map3): \n\t >>> ");
         }
         return biomeDisplay;
+    }
+
+    public void loadMapPreset(String folderName, String fileName) {
+        String fullPath = folderName + "/" + fileName;
+        File mapFile = new File(fullPath);
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(mapFile))) {
+
+            for (int y = 0; y < worldSize; y++) {
+                String line = reader.readLine();
+
+                if (line == null) {
+                    System.out.println("Error: File ended early at line " + y);
+                    break;
+                }
+
+                // Loop horizontally
+                for (int x = 0; x < worldSize; x++) {
+                    char biomeLetter = line.charAt(x);
+                    String letterStr = String.valueOf(biomeLetter);
+                    biomeMap[x][y] = new Biome(letterStr);
+                    System.out.print(biomeMap[x][y]);
+                }
+            }
+            System.out.println("Successfully loaded map: " + fullPath);
+
+        } catch (IOException e) {
+            System.out.println("Current Java Directory: " + new File(".").getAbsolutePath());
+
+            System.out.println("CRITICAL: Failed to load map at " + fullPath);
+            System.out.println("Reason: " + e.getMessage());
+            // Trigger your backup random map generator here if the file fails
+        }
     }
 
     public void resetGrids() {
@@ -245,9 +331,11 @@ public class World {
         }
     }
 
-
-    public <T> ArrayList<T> getNearbyOrgs(int xPos, int yPos, double searchRadius, ArrayList<T>[][] orgGrid){ //GUYS ths T color is SOOOOOOO prettyyyyy
-        ArrayList<T> localList = new ArrayList<>();
+    @SuppressWarnings("unchecked")
+    public <T> ArrayList<T> getNearbyOrgs(int[] otherLocation, double searchRadius, ArrayList<T> localList, ArrayList<T>[][] orgGrid){ //GUYS ths T color is SOOOOOOO prettyyyy
+        localList.clear();
+        int xPos = otherLocation[0];
+        int yPos = otherLocation[1];
 
         int inBucketX = (int) (xPos/bucketSize);
         int inBucketY = (int) (yPos/bucketSize);
@@ -266,7 +354,7 @@ public class World {
                 localList.addAll(orgGrid[currBucketX][currBucketY]); //add all the energy in that bucket to the local list to search for
             }
         }
-        return localList;
+        return (ArrayList<T>) localList;
     }
 
     /* public ArrayList<Bird> getNearbyBirds(int xPos, int yPos, double searchRadius){
@@ -297,7 +385,7 @@ public class World {
     public void spawnEnergy(int amount) {
         for (int i=0; i<amount; i++) {
             Energy en = new Energy();
-            energyList.add(en);
+        //   energyList.add(en);
             usableEnergyList.add(en);
             energyLayout[en.getPosition()[0]][en.getPosition()[1]] ++;
             // System.out.println(""+en.getPosition()[0]+" "+en.getPosition()[1]);
@@ -312,7 +400,7 @@ public class World {
             for (int i=0; (i*i)<amount; i++) {
                 for (int j=0; (j*j)<amount; j++) {
                     Energy en = new Energy(new int[] {i, j});
-                    energyList.add(en);
+              //      energyList.add(en);
                     usableEnergyList.add(en);
                     energyLayout[en.getPosition()[0]][en.getPosition()[1]] ++;
 
@@ -327,7 +415,7 @@ public class World {
             for (int i=0; (i*i)<amount; i++) {
                 for (int j=0; (j*j)<amount; j++) {
                     Energy en = new Energy(new int[] {i+startPt, j+startPt});
-                    energyList.add(en);
+               //     energyList.add(en);
                     usableEnergyList.add(en);
                     energyLayout[en.getPosition()[0]][en.getPosition()[1]] ++;
 
@@ -341,7 +429,7 @@ public class World {
 
     public void sporeEnergy(int[] coords, int size) {
         Energy en = new Energy(coords, size);
-        energyList.add(en);
+      //  energyList.add(en); //use usableENergyList bc dead ones dont matter
         usableEnergyList.add(en);
         energyLayout[en.getPosition()[0]][en.getPosition()[1]] ++;
 
@@ -380,9 +468,10 @@ public class World {
         }
     }
 
-    public void addBird(Genes g, String newID, ArrayList<Bird> sepList, int[] newPos) {
-        Bird b = new Bird(g, newID, newPos, biomeMap);
+    public Bird addBird(int age, Genes g, String newID, ArrayList<Bird> sepList, int[] newPos) {
+        Bird b = new Bird(age, g, newID, newPos, biomeMap);
         sepList.add(b);
+        return b;
     }
 
     public void popSave(int amount, int min, int energyAmount) {
@@ -397,20 +486,33 @@ public class World {
         System.out.println("\n * Here are the last " + numDeadShow + " deaths: \n");
         int ddNum = 0;
         int ddAgeSum = 0;
+        int deathRate = 0; // for 10 end in list
 
-        ArrayList<Bird> printDeadList = new ArrayList<Bird> ((numDeadShow< deathList.size()) ? deathList.subList(deathList.size()-numDeadShow-1, deathList.size()-1) : deathList);
-        for (Bird b : printDeadList) {
+        // ArrayList<Bird> printDeadList = new ArrayList<Bird> ((numDeadShow< deathList.size()) ? deathList.subList(deathList.size()-numDeadShow-1, deathList.size()-1) : deathList);
+
+        while (recentDeathList.size()>numDeadShow) { //remove the easrliest ones until the required dead amount shows, so it slides through and has last 10 (or wtv numDeadShow is)
+            recentDeathList.remove(0);
+            deathRate++; //addd for every removed from list
+        }
+
+        for (Bird b : recentDeathList) {
             if (!b.alive) {
                 System.out.println(b);
                 //ddNum++;
                 ddAgeSum+=b.getDie_age();
             }
         }
-        ddNum = deathList.size();
+        ddNum = deathCount;
+
+        if (ddNum >= 50000) {
+            flushDeathMemoToFile(deathMemorandum);
+            deathMemorandum.setLength(0);
+        }
 
         System.out.println("\n * Here are the alive birds: \n");
         int alNum = 0;
         int alAgeSum = 0;
+
 
         int BinP=0;
         int BinF=0;
@@ -422,6 +524,7 @@ public class World {
                 System.out.println(b);
                 alNum++;
                 alAgeSum += b.getAge();
+
             }
 
                 Biome currBiome = biomeMap[b.getPosition()[0]][b.getPosition()[1]];
@@ -441,7 +544,7 @@ public class World {
                         BinM++;
                         break;
                     default:
-                        System.out.println("not in biome?");
+                        //System.out.println("not in biome?");
                 }
         }
 
@@ -472,10 +575,11 @@ public class World {
                     EinM++;
                     break;
                 default:
-                    System.out.println("not in biome?");
+                  //System.out.println("not in biome?");
             }
         }
         int alAvNum = (alNum==0) ? 0 : alAgeSum/alNum;
+
 
 
 
@@ -487,6 +591,15 @@ public class World {
 
     }
 
+    public void flushDeathMemoToFile(StringBuilder deathMemorandum) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("historical_deaths.txt", true))) {
+            writer.write(deathMemorandum.toString());
+            System.out.println("--- Flushed 50,000 dead bird records to historical_deaths.txt ---");
+        } catch (IOException e) {
+            System.err.println("Failed to write death logs to file: " + e.getMessage());
+        }
+    }
+
     public void pause(double sec) {
         try { Thread.sleep((int) (1000*sec)); } catch (InterruptedException e) {System.out.println("error in processing..."); };
     }
@@ -496,18 +609,24 @@ public class World {
         System.out.println("\n\tLast Cycle\n");
         this.oneTick(cluster, minAge, cycleNum, 5, 10);
 
-        int ddNum = 0;
-        int ddAgeSum = 0;
-        for (Bird b : deathList) {
-            System.out.println(b);
-            ddNum++;
-            ddAgeSum +=b.getDie_age();
 
-        }
+        System.out.println("\n\n=== Dead Birds ===");
+        int ddNum = deathCount;
+        int ddAgeSum = 0;
+//        for (Bird b : deathList) {
+//            System.out.println(b);
+//            // ddNum++;
+//            ddAgeSum +=b.getDie_age();
+//
+//        }
+        System.out.print(deathMemorandum.toString());
 
         System.out.println();
         int alNum = 0;
         int alAgeSum = 0;
+        int alChild =0;
+        int[] alPos = new int[2];
+        double alSpeed=0; double alSize=0; double alMaxHP = 0; double alRes=0; double alFert=0; double alAbsD=0; double alReprD=0; double alVisD=0; double alSpPref=0; double alEnOrBias=0; double alCrAff=0; double alAgOrBias=0;
 
         int BinP=0;
         int BinF=0;
@@ -517,8 +636,24 @@ public class World {
         for (Bird b : aliveList) {
             if (b.alive) {
                 System.out.println(b);
-                alNum++;
-                alAgeSum += b.getAge();
+                if (b.getAge()>=0) {
+                    alNum++;
+                    alAgeSum += b.getAge();
+                    alPos[0] += b.getPosition()[0];
+                    alPos[1] += b.getPosition()[1];
+                    alSpeed += b.getGenes().getSpeed();
+                    alSize += b.getGenes().size;
+                    alMaxHP += b.getMaxHP();
+                    alRes += b.getGenes().getResistance();
+                    alFert += 1 - b.getGenes().getResistance();
+                    alAbsD += b.getAbsorbRad();
+                    alReprD += b.getReproRad();
+                    alVisD += b.getGenes().getVisionDist();
+                    alSpPref += b.getGenes().speedPref;
+                    alEnOrBias += b.getGenes().getEnergyOrientBias();
+                    alCrAff += b.getGenes().crowdAff;
+                    alAgOrBias += b.getGenes().aggroOrientBias;
+                }
             }
 
             Biome currBiome = biomeMap[b.getPosition()[0]][b.getPosition()[1]];
@@ -538,7 +673,7 @@ public class World {
                     BinM++;
                     break;
                 default:
-                    System.out.println("not in biome?");
+                   // System.out.println("not in biome?");
             }
         }
 
@@ -570,19 +705,27 @@ public class World {
                     EinM++;
                     break;
                 default:
-                    System.out.println("not in biome?");
+                   // System.out.println("not in biome?");
             }
         }
-        for (Energy d : usableEnergyList) {
+        eNum2 = usableEnergyList.size();
 
-                eNum2++; //this num more than eNum, so some in usableEnergyList are <=0. but it is = enCount???
-        }
 
         int alAgeAv = (alNum!=0) ? alAgeSum/alNum : 0;
+        double[] avgStats = new double[] {alSize, alSpeed, alMaxHP, alRes, alAbsD, alReprD, alVisD, alSpPref, alEnOrBias, alCrAff, alAgOrBias};
+        for (int avgP=0; avgP<avgStats.length; avgP++) {
+            avgStats[avgP] = avgStats[avgP]/alNum;
+        }
+        alSize=avgStats[0]; alSpeed=avgStats[1]; alMaxHP=avgStats[2]; alRes=avgStats[3]; alAbsD=avgStats[4]; alReprD=avgStats[5]; alVisD=avgStats[6]; alSpPref=avgStats[7]; alEnOrBias=avgStats[8]; alCrAff=avgStats[9]; alAgOrBias=avgStats[10];
+        alPos[0]/=alNum; alPos[1]/=alNum;
 
         int ddAgeAv = (ddNum!=0) ? ddAgeSum/ddNum : 0;
 
-        System.out.println("-------------------------------------------------------------" +
+        Genes avgGenes = new Genes((int) alSize, alSpeed, (int) alMaxHP, alRes, alAbsD, alReprD, alVisD, alSpPref, alEnOrBias, alCrAff, alAgOrBias, new int[] {0, 0, 0, 0});
+       // Bird avgBird = new Bird(avgGenes, "Average model", alPos, biomeMap);
+        Bird avgBird = addBird(-10000, avgGenes, "Average model", aliveList, alPos);
+
+        System.out.println("-------------------------------------------------------------\n" + avgBird + "\n-------------------------------------------------------------"+
                 "\n Alive: " + alNum + " - Deaths: " + ddNum + " - Energy left: " + eNum + " " + eNum2+
                 "\n Energy in\t Plains: "+EinP+" - Forest: "+EinF+" - Swamp: "+EinS+" - Mountain: "+EinM + "\t Birds in\t Plains: "+BinP+" - Forest: "+BinF+" - Swamp: "+BinS+" - Mountain: "+BinM+
                 "\n Average Alive Age: " + alAgeAv + " - Average Death Age: " + ddAgeAv);
@@ -594,16 +737,16 @@ public class World {
 
     public void printEnergyLayout() {
         System.out.println("\n");
-        for (int i = 0; i<energyLayout.length; i++) {
+        for (int[] ints : energyLayout) {
             System.out.println();
-            for (int j=0; j<energyLayout[0].length; j++) {
+            for (int j = 0; j < energyLayout[0].length; j++) {
                 String energyPer = "";
-                if (energyLayout[i][j]==0) {
+                if (ints[j] == 0) {
                     energyPer = "_";
                 } else {
-                    energyPer = ""+energyLayout[i][j];
+                    energyPer = "" + ints[j];
                 }
-                System.out.print(" "+energyPer);
+                System.out.print(" " + energyPer);
             }
         }
 
@@ -617,7 +760,8 @@ public class World {
                 System.out.println("Bird #"+ b.getID() + " died.");
             }
         }
-        deathList.clear();
+      //  deathList.clear();
+        deathMemorandum.setLength(0); //makes it empty
     }
 
 
@@ -628,7 +772,7 @@ public class World {
 
             out.println("Cycle: " + currCycle);
             out.println("Alive: " + aliveList.size());
-            out.println("Dead: " + deathList.size());
+            out.println("Dead: " + deathCount);
 
             out.println("\n=== Alive Birds ===");
 
@@ -638,22 +782,26 @@ public class World {
             for (Bird b : aliveList) {
                 System.out.println(b);
                 //System.out.println(", " + b.getGenes());
-                alNum++;
-                alAgeSum += b.getAge();
+                if (b.getAge()>=0) {
+                    alNum++;
+                    alAgeSum += b.getAge();
+                }
 
             }
 
 
             out.println("\n\n=== Dead Birds ===");
 
-            int ddNum = 0;
+            int ddNum = deathCount;
             int ddAgeSum = 0;
-            for (Bird b : deathList) {
-                out.println(b);
-                ddNum++;
-                ddAgeSum +=b.getDie_age();
 
-            }
+            System.out.println(deathMemorandum.toString());
+//            for (Bird b : deathList) {
+//                out.println(b);
+//                ddNum++;
+//                ddAgeSum +=b.getDie_age();
+//
+//            }
 
 
             int eNum = 0;
@@ -697,6 +845,10 @@ public class World {
         return usableEnergyList;
     }
 
+    public Biome[][] getBiomeMap () {
+        return biomeMap;
+    }
+
 //
 //    public void energyCycle() { /// not used yet bc im not sure how the energyCycle will work and where it will be placed
 //        for (Energy e : energyList) {
@@ -713,7 +865,7 @@ public class World {
 
 /* Notes:
 * - we NEED to make it pause after each generation (run) and list the alive Birds (OR maybe ALL of them, with the dead oens at the end) (ORRRR the dead ones with annoucnement) --DONE!!!
-* - We need to find a way for 1-strings to stops being prevalent. maybe a bigger radius, or smt to make each one reproduce more
-*  - LETS make a graph option where u can graph the lineage of a ancestor
+* - We need to find a way for 1-strings to stops being prevalent. maybe a bigger radius, or smt to make each one reproduce more --Fixed but returning???
+*  - LETS make a graph option where u can graph the lineage of a ancestor --to do in 1.2
 * */
 

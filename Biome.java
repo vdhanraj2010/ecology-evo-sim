@@ -1,5 +1,7 @@
 package populationPlay;
 
+import java.awt.*;
+
 public class Biome {
     // Set up variables here
     private String biomeName="";
@@ -7,47 +9,69 @@ public class Biome {
     private double energySpread;
     private double movementCost;
     private double movementMult;
+    private double visionMultiplier;
     private double temperature;
+    private Color biomeColor;
+
+
+    static Color plainsColor = new Color(91, 170, 79);
+    static Color forestColor = new Color(15, 70, 2, 255);
+    static Color swampColor = new Color(99, 134, 87, 255);
+    static Color desertColor = new Color(210, 165, 90);
+    static Color coastColor = new Color(220, 200, 140, 255);
+    static Color mountainColor = new Color(130, 135, 140);
+    static Color jungleColor = new Color(15, 120, 80);
+    static Color tundraColor = new Color(210, 235, 245);
+    static Color volcanicColor = new Color(55, 35, 40);
+    static Color oceanColor = new Color(20, 40, 85, 255);
 
     public Biome (String biomeInd) {
-        if (biomeInd.equals("P")) {
-            biomeName="Plains";
-            setPlains();
-        } else if (biomeInd.equals("F")) {
-            biomeName="Forest";
-            setForest();
-        } else if (biomeInd.equals("D")) {
-            biomeName="Desert";
-            setDesert();
-        } else if (biomeInd.equals("S")) {
-            biomeName="Swamp";
-            setSwamp();
-        } else if (biomeInd.equals("C")) {
-            biomeName="Coast";
-            setCoast();
-        } else if (biomeInd.equals("M")) {
-            biomeName="Mountain";
-            setMountain();
-        } else if (biomeInd.equals("J")) {
-            biomeName="Jungle";
-            setJungle();
-        } else if (biomeInd.equals("T")) {
-            biomeName="Tundra";
-            setTundra();
-        } else if (biomeInd.equals("V")) {
-            biomeName="Volcanic";
-            setVolcanic();
-        } else if (biomeInd.equals("~")) {
-            biomeName="Ocean";
-            setOcean();
-        } else {
-            System.out.println("Please choose a valid biome (P, F, D, S, C):\n");
+        switch (biomeInd) {
+            case "P": setPlains(); break;
+            case "F": setForest(); break;
+            case "S": setSwamp(); break;
+            case "D": setDesert(); break;
+            case "C": setCoast(); break;
+            case "M": setMountain(); break;
+            case "J": setJungle(); break;
+            case "T": setTundra(); break;
+            case "V": setVolcanic(); break;
+            case "O": setOcean(); break;
+            case "~": setOcean(); break;
+            default: System.out.println("Please choose a valid biome (P, F, D, S, C):\n");
         }
+        System.out.print(biomeInd);
+
+//        if (biomeInd.equals("P")) {
+//            setPlains();
+//        } else if (biomeInd.equals("F")) {
+//            setForest();
+//        } else if (biomeInd.equals("D")) {
+//            setDesert();
+//        } else if (biomeInd.equals("S")) {
+//            setSwamp();
+//        } else if (biomeInd.equals("C")) {
+//            setCoast();
+//        } else if (biomeInd.equals("M")) {
+//            setMountain();
+//        } else if (biomeInd.equals("J")) {
+//            setJungle();
+//        } else if (biomeInd.equals("T")) {
+//            setTundra();
+//        } else if (biomeInd.equals("V")) {
+//            setVolcanic();
+//        } else if (biomeInd.equals("~")) {
+//            setOcean();
+//        } else {
+//            System.out.println("Please choose a valid biome (P, F, D, S, C):\n");
+//        }
     }
 
     /// These are the modifiers for each biome.
    //  for now, i am only changing movement Mult, not cost
     private void setPlains() {
+        biomeName="Plains";
+        biomeColor = plainsColor;
         energyGrowth=1.0;
         energySpread=1.0;
         movementMult=1.0;
@@ -55,61 +79,83 @@ public class Biome {
     }
 
     private void setForest() {
-        energyGrowth = 1.4;
-        energySpread = 0.3;
+        biomeName="Forest";
+        biomeColor = forestColor;
+        energyGrowth = 2.0;
+        energySpread = 0.4;
         movementMult = 0.6;
-    }
-
-    private void setDesert() {
-        energyGrowth=0.1;
-        energySpread=2.0;
-        movementMult=0.3;
-        temperature = 1.5;
+        visionMultiplier = 0.8;
     }
 
     private void setSwamp() {
-        energyGrowth=2.0;
-        energySpread=0.2;
-        movementMult=0.4;
+        biomeName="Swamp";
+        biomeColor = swampColor;
+        energyGrowth=2.3;
+        energySpread=0.4;
+        movementMult=0.5;
+        movementCost = 0.7;
+    }
+
+    private void setDesert() {
+        biomeName="Desert";
+        biomeColor = desertColor;
+        energyGrowth=0.8;
+        energySpread=2.5;
+        movementMult=1.3;
+        temperature = 1.5;
     }
 
     private void setCoast() {
-        energyGrowth=1.5;
+        biomeName="Coast";
+        biomeColor = coastColor;
+        energyGrowth=1.9;
         energySpread=1.0;
-        movementMult=1.2;
+        movementMult=2.0;
     }
 
     private void setMountain() {
-        energyGrowth=0.5;
+        biomeName="Mountain";
+        biomeColor = mountainColor;
+        energyGrowth=1.4;
         energySpread=1.0;
         movementMult=0.4;
     }
 
     private void setJungle() {
-        energyGrowth=2.0;
-        energySpread=0.8;
-        movementMult=0.6;
+        biomeName="Jungle";
+        biomeColor = jungleColor;
+        energyGrowth=2.8;
+        energySpread=0.7;
+        movementMult=0.7;
+        visionMultiplier = 0.7;
+        // crowding penalty simulated disease
     }
 
     private void setTundra() { //special, has old age help
-        energyGrowth=0.5;
+        biomeName="Tundra";
+        biomeColor = tundraColor;
+        energyGrowth=0.7;
         energySpread=0.6; //or 1.0
-        movementMult=0.8;
+        movementMult=1.3;
         temperature = 0.1; // Cold!
         // insert age damage reduction
     }
 
     private void setVolcanic() { //special, random catastrophy but also good energy spot
-        energyGrowth=1.5;
+        biomeName="Volcanic";
+        biomeColor = volcanicColor;
+        energyGrowth=5.0;
         energySpread=1.8; //or 1.0
-        movementMult=1.0;
+        movementMult=1.2;
         // insert random wipeout of energy
     }
 
     private void setOcean() { //special, cannot cross except if they jump over it, no energy grows
-        energyGrowth=0.0;
-        energySpread=0.0; //or 1.0
-        movementMult=0.1;
+        biomeName="Ocean";
+        biomeColor = oceanColor;
+        energyGrowth=0.2;
+        energySpread=10; //or 1.0
+        movementMult=5;
         // insert
     }
 
@@ -205,6 +251,13 @@ public class Biome {
         return biomeName;
     }
 
+    public Color getBiomeColor () {
+        return biomeColor;
+    }
 
+    @Override
+    public String toString() {
+        return biomeName;
+    }
 
 }

@@ -1,9 +1,9 @@
 package populationPlay;
-import java.util.ArrayList;
 import java.text.DecimalFormat;
 import java.util.Random;
 
 public class Genes {
+    //ability
     double speed;
     double resistance;
     double fertility;
@@ -13,7 +13,13 @@ public class Genes {
     double repro_d;
     int clusterAmt;
     double visionDist;
-    double energyOrientBias;
+
+    //behavioral
+    double speedPref;
+    double energyOrientBias; //how strongly does the orientation to energy patches matter
+    double crowdAff; //how much does the bird stray from or get attrafted to crowds of same species
+    double aggroOrientBias;
+
     // String heritage; //ID of bird
     int[] speciesCode;
 
@@ -26,10 +32,22 @@ public class Genes {
         fertility = 1.0-resistance;
         absorb_d = Math.random()*50+2; //this is the gene for absorb before the logarithmic curve (explained more in Bird tab)
         repro_d = Math.random()*50+2;
-        maxHP = (int)(Math.random() * 100 + 5 - absorb_d);
+        maxHP = (int)(Math.random() * 150 + 50 - absorb_d);
         maxHP = Math.max(5, maxHP); //IDEA: r-select vs k-select. more HP means less cluster babies, but less hp = more babies
-        visionDist = 5; //birds start with blindness, have to evolve sight
-        energyOrientBias = 1;
+        /*visionDist = 5; //birds start with blindness, have to evolve sight
+        speedPref = 0.5;
+        energyOrientBias = 0;
+        crowdAff = 0;
+        aggroOrientBias = 0; */
+
+        visionDist = Math.random()*20; //birds start with blindness, have to evolve sight
+        //visionDist = 20;
+        speedPref = Math.random();
+        energyOrientBias = Math.random()/4;
+        //energyOrientBias =1;
+        crowdAff = Math.random()/2.5-0.2;
+        //crowdAff = 0.5;
+        aggroOrientBias = 0;
         clusterAmt = 5;
         speciesCode = new int[] {1000, 1000, 1000, 1000};
 
@@ -37,8 +55,8 @@ public class Genes {
         // tempStats = [size, speed
     }
 
-    public Genes(int s, double sp, int mhp, double res, double ab_d, double re_d, double vDist, double enOrientBias, int[] specCode) {
-        // sets the genes to whatever given
+    public Genes(int s, double sp, int mhp, double res, double ab_d, double re_d, double vDist, double spPref, double enOrientBias, double crAff, double agOrientBias, int[] specCode) {
+        // sets the genes to whatever give
         size = s;
         speed = sp;
         maxHP = mhp;
@@ -47,9 +65,12 @@ public class Genes {
         absorb_d = ab_d;
         repro_d = re_d;
         visionDist = vDist;
+        speedPref = spPref;
         energyOrientBias = enOrientBias;
+        crowdAff = crAff;
+        aggroOrientBias = agOrientBias;
 
-        speciesCode = specCode;
+        speciesCode = specCode.clone();
 
 
 
@@ -62,7 +83,7 @@ public class Genes {
         int newSize = (Math.random() < 0.5) ? a.size : b.size; //takes 50% either parent size
 
         double newSpeed = average(a.speed, b.speed);
-        newSpeed = mutateDouble(newSpecCode, newSpeed, 1);
+        newSpeed = mutateDouble(newSpecCode, newSpeed, 0.25);
 
         int newMaxHP = (int) Math.round(average(a.maxHP, b.maxHP));
         newMaxHP = mutateInt(newSpecCode, newMaxHP, 2);
@@ -77,10 +98,19 @@ public class Genes {
         newReproD = mutateDouble(newSpecCode, newReproD, 3);
 
         double newVisionDist = average(a.visionDist, b.visionDist);
-        newVisionDist = mutateDouble(newSpecCode, newVisionDist, 3);
+        newVisionDist = mutateDouble(newSpecCode, newVisionDist, 5);
+
+        double newSpPref = average(a.speedPref, b.speedPref);
+        newSpPref = mutateDouble(newSpecCode, newSpPref, 0.5);
 
         double newEnOrientBias = average(a.energyOrientBias, b.energyOrientBias);
-        newEnOrientBias = mutateDouble(newSpecCode, newEnOrientBias, 0.1);
+        newEnOrientBias = mutateDouble(newSpecCode, newEnOrientBias, 0.3);
+
+        double newCrowdAff = average(a.crowdAff, b.crowdAff);
+        newCrowdAff = mutateDouble(newSpecCode, newCrowdAff, 0.2);
+
+        double newAgOrientBias = average(a.aggroOrientBias, b.aggroOrientBias);
+        newAgOrientBias = mutateDouble(newSpecCode, newAgOrientBias, 0.1);
 
 
         /*
@@ -93,9 +123,12 @@ public class Genes {
         newAbsorbD = Math.max(0.5, newAbsorbD);
         newReproD = Math.max(0.5, newReproD);
         newVisionDist = Math.max(newVisionDist, 0);
+        newSpPref = Math.max(Math.min(newSpPref, 1), 0);
         newEnOrientBias = Math.max(Math.min(newEnOrientBias, 1), 0);
+        newCrowdAff = Math.max(Math.min(newCrowdAff, 1), -1);
+        newAgOrientBias = Math.max(Math.min(newAgOrientBias, 1), -1);
 
-        return new Genes(newSize, newSpeed, newMaxHP, newResistance, newAbsorbD, newReproD, newVisionDist, newEnOrientBias, newSpecCode);
+        return new Genes(newSize, newSpeed, newMaxHP, newResistance, newAbsorbD, newReproD, newVisionDist, newSpPref, newEnOrientBias, newCrowdAff, newAgOrientBias, newSpecCode);
     }
 
     //obtaining methods
@@ -139,11 +172,11 @@ public class Genes {
 
     private static double mutateDouble(int[] newSpecCode, double value, double range) { /// double mutation
         double mutation = 0.0;
-        if (Math.random()<0.01) {
+        if (Math.random()<0.005) {
              mutation = (Math.random()*20 - 10) * range;
              mutateSpecCode(newSpecCode, 5);
 
-        } else if (Math.random()<0.1) {
+        } else if (Math.random()<0.05) {
             mutation = (Math.random() - 0.5) * range;
             mutateSpecCode(newSpecCode, 1);
         }
@@ -153,10 +186,10 @@ public class Genes {
     private static int mutateInt(int[] newSpecCode, int value, int range) { /// int mutation
         //int mutation = (int)((Math.random() - 0.5) * range);
         double mutation = 0.0;
-        if (Math.random()<0.01) {
+        if (Math.random()<0.005) {
             mutation = (Math.random()*20 - 10) * range;
             mutateSpecCode(newSpecCode, 5);
-        } else if (Math.random()<0.1) {
+        } else if (Math.random()<0.05) {
             mutation = (Math.random() - 0.5) * range;
             mutateSpecCode(newSpecCode, 1);
         }
@@ -178,7 +211,8 @@ public class Genes {
         DecimalFormat resF = new DecimalFormat("##.#");
         DecimalFormat absF = new DecimalFormat("##.##");
         return "Genes: speed - " + absF.format(speed) + ", size - " + size + ", HP - " + maxHP + ", resistance - " + (resF.format(resistance*100)) + ", fertility - " + (resF.format(fertility*100)) +
-                "%, absorb_d - " + (absF.format(Math.pow(absorb_d, 1.0/2)))+ ", repro_d - " + (absF.format(Math.pow(repro_d, 1.0/2)))+ "%, visionDist - " + (absF.format(Math.pow(visionDist, 1.0/2))) + ", enOrientBias - "+ absF.format((double) energyOrientBias*100) + "%";
+                "%, absorb_d - " + (absF.format(Math.pow(absorb_d, 1.0/2)))+ ", repro_d - " + (absF.format(Math.pow(repro_d, 1.0/2)))+ "%, visionDist - " + (absF.format(visionDist)) + ", speedPref - " + (absF.format(speedPref*100)) + "%, " +
+                "enOrientBias - "+ absF.format((double) energyOrientBias*100) + "%, crowdAff - "+ absF.format((double) crowdAff*100) + "%";
     }
 
 

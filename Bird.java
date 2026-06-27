@@ -4,7 +4,7 @@ import java.awt.Color;
 
 public class Bird {
     private int[] stats;
-    private int[] position = new int[2];
+    private int[] position;
     private int age;
     private int die_age;
     private int hp;
@@ -17,6 +17,7 @@ public class Bird {
     private double repro_rad;
     private double visionDist;
     private double energyOrientBias;
+    private double crowdAffBias;
     private double momentumAngle;
     public String biomeIn;
     public Biome currBiome;
@@ -33,6 +34,8 @@ public class Bird {
     public String deathCause = "";
     public int deathCauseDone = 0; //temp
     private Genes myGenes;
+    private int matingCooldown = -1000;
+    public int matingCooldownTime = 1;
 
     public void birth(Genes genes) {
         age = 0; //sets age to 0
@@ -46,6 +49,7 @@ public class Bird {
         absorb_rad = Math.pow(genes.getAbsorb(), 1.0/2) ; //uses a cbrt curve to determine the effect of the distance of absorption
         repro_rad = Math.pow(genes.getRepro(), 1.0/2) ;
         energyOrientBias = genes.getEnergyOrientBias();
+        crowdAffBias = genes.crowdAff;
         visionDist = genes.getVisionDist();
 
 
@@ -71,9 +75,9 @@ public class Bird {
     }
 
 
-
-    public Bird(Genes g, String newID, int[] pos, Biome[][] biomeMap) { //These are birds who spawned out of reproduction
+    public Bird(int age, Genes g, String newID, int[] pos, Biome[][] biomeMap) { //These are birds who spawned out of reproduction
         birth(g);
+        this.age = age;
         myGenes = g;
        position = pos;  // moves to mother radius
         currBiome = biomeMap[position[0]][position[1]];
@@ -86,7 +90,7 @@ public class Bird {
         worldSize=wSize;
     }
 
-    public void lifeCycle(ArrayList<Bird> deathList, int cycleNum, Biome[][] biomeMap, ArrayList<Energy> nearbyEnergy, ArrayList<Bird> nearbyBirds) {
+    public void lifeCycle(int cycleNum, StringBuilder deathMemo, Biome[][] biomeMap, ArrayList<Energy> nearbyEnergy, ArrayList<Bird> nearbyBirds) {
 
         currBiome = biomeMap[position[0]][position[1]];
         biomeIn = currBiome.getBiomeName();
@@ -94,23 +98,22 @@ public class Bird {
 
 
         if (hp <= 0 && alive) { // virgin clause added, lets see --> its makes everyone die after one child, so removed it
-            alive = false;
-            die_age = age; // we will preserve death age for analysis of the lifespan
-            deathYear= cycleNum;
-            deathList.add(this);
-        } else if (age>30 && Math.random()<(0.05) && alive && reproID!=0) { //VIRGIN CLAUSE: cannot die if virgin and less than 10 :`)
-            alive = false; //starting to question this, since we have the age hp decrement already
-            die_age = age;
-            deathList.add(this);
-            deathYear= cycleNum;
+            deathProcess(cycleNum, deathMemo);
 
+        } else if (age>30 && Math.random()<(0.05) && alive && reproID!=0) { //VIRGIN CLAUSE: cannot die if virgin and less than 10 :`), //starting to question this, since we have the age hp decrement already
+            deathProcess(cycleNum, deathMemo);
+            deathCause="random old age";
+            deathCauseDone=1;
             //System.out.println("WE COUDL BE IMMORTAL");
             immortal = true;
             //later make older bird more likely to die
         } else {
+            hp -= (int) (visionDist * 0.1);
+            matingCooldown-=10;
 
+            double distanceMoved = move(speed*movementFactor, nearbyEnergy, nearbyBirds);
+            hp-= (int) (distanceMoved*movementFactor);
 
-            hp-= move(speed*movementFactor, nearbyEnergy);
             if (hp<=0 && deathCauseDone==0) {
                 deathCause="movement";
                 deathCauseDone=1;
@@ -122,14 +125,14 @@ public class Bird {
             if(juvenile){ //underage
                 hp -= 1;
             }
-            hp -= (5 + age/50*2);
+            hp -= (3 + age/50*2);
             if (hp<=0 && deathCauseDone==0) {
                 deathCause="hunger";
                 deathCauseDone=1;
             }
 
 
-            if(age > resistance * 50) {
+            if(age > resistance * 75) {
                 hp -= age / 5;
                 if (hp<=0 && deathCauseDone==0) {
                     deathCause="old age";
@@ -145,19 +148,31 @@ public class Bird {
         age++; // we will let the dead birds age to see each one's stats
     }
 
-    private int move(double speed, ArrayList<Energy> nearbyEnergy){
-        double distance = Math.pow(Math.random(), 0.75/1.5)*speed;  // later, want to make the root factor a gene as well, originallt 1.0/1.5, made it 0.5/1.5 to make world bigger
+    private double move(double speed, ArrayList<Energy> nearbyEnergy, ArrayList<Bird> nearbyBirds){ // moving is more akin to flying and dropping down on a patch
+        // double distance = Math.pow(Math.random(), 0.75/1.5)*speed;  // later, want to make the root factor a gene as well, originallt 1.0/1.5, made it 0.5/1.5 to make world bigger
+        double distance = Math.pow(Math.random(), 0.75/1.5)*speed*getGenes().speedPref;
+
+        double totalX = 0;
+        double totalY = 0;
+        double[] energyAttrV = energyAttrVector(visionDist, nearbyEnergy);
+        double[] crowdAffV = crowdAffVector(visionDist, nearbyBirds);
 
         double randomDir = Math.random()*Math.PI*2; // angle in radians of movement
-        //double dir = randomDir;
-       double dir = energyOrientBias*angleToClosestEnergy(visionDist, nearbyEnergy) + randomDir*(1-energyOrientBias);
-        momentumAngle = dir;
-        int dx = (int) (Math.cos(dir)*distance); // make a vector with magnitude distance
-        int dy = (int) (Math.sin(dir)*distance);
+        int dx = (int) (Math.cos(randomDir)*distance); // make a vector with magnitude distance
+        int dy = (int) (Math.sin(randomDir)*distance);
+
+        totalX += (2.5-energyOrientBias-Math.abs(crowdAffBias))*dx + energyOrientBias*energyAttrV[0] + crowdAffBias*crowdAffV[0]; // + crowdAffV[0];
+        totalY += (2.5-energyOrientBias-Math.abs(crowdAffBias))*dy + energyOrientBias*energyAttrV[1] + crowdAffBias*crowdAffV[1]; // + crowdAffV[1];
+
+        double finalDir = Math.atan2(totalY, totalX);
+        momentumAngle = finalDir;
 
         //check to make sure it isn't crossing bounds; if so, then it wraps around, like a globe
-        int newX = (position[0]+dx);
-        int newY = position[1]+dy;
+        int finalX = (int) Math.round(Math.cos(finalDir)*distance);
+        int finalY = (int) Math.round(Math.sin(finalDir)*distance);
+
+        int newX = position[0]+ finalX;
+        int newY = position[1]+ finalY;
 
         //int[] position = {newX, newY};// changes position
         position[0]=(newX+worldSize)%worldSize;
@@ -174,7 +189,8 @@ public class Bird {
         //might make return move distance for viewerscape later
 
         //System.out.println("Bird " + myID + " moved " + (int)distance);
-        return (int)(distance);//*speed);
+
+        return (distance);//*speed);
     }
 //BOTH absorbEnergy and tryReproduce selection and confirmation is handled by the World
     public void absorbEnergy (Energy e) {
@@ -186,15 +202,16 @@ public class Bird {
     }
 
     public void tryReproduce(Bird b2, ArrayList<Bird> newBorns, World myWorld, int minAge, int specLim) {
-        //ok so we take the call, do the random, make the genes + ID, then tell bList to make the bird using the new ID and genes
-        hp -= 0; // trying to reproduce costs 10 hp --> changed to 1 to support cluster
+        if (matingCooldown<=0) {
+            //ok so we take the call, do the random, make the genes + ID, then tell bList to make the bird using the new ID and genes
+            hp -= 1; // trying to reproduce costs 10 hp --> changed to 1 to support cluster
 
-        String[] b1IdNum = this.getID().split("-");
-        String[] b2IdNum = b2.getID().split("-");
+            String[] b1IdNum = this.getID().split("-");
+            String[] b2IdNum = b2.getID().split("-");
 
-        //later, instead of a speciation limit, i will make it a factor of fertility calculation based on genetic distance
-        // another thing i can do, risky, is that if the genes are too different then no breed
-        // i think i will do the latter, by making a original number (1000), each mutation makes it alter + or -, and if the difference is too much, no mate. this way most times only recent ancestry can mate bc unique random lineage
+            //later, instead of a speciation limit, i will make it a factor of fertility calculation based on genetic distance
+            // another thing i can do, risky, is that if the genes are too different then no breed
+            // i think i will do the latter, by making a original number (1000), each mutation makes it alter + or -, and if the difference is too much, no mate. this way most times only recent ancestry can mate bc unique random lineage
 //        int b1SpecLim;
 //        int b2SpecLim;
 //
@@ -219,30 +236,32 @@ public class Bird {
 //            b2SpecLim = Integer.parseInt(b2IdNum[b2IdNum.length-specLim]);
 //        }
 
-        double specDiffSqr = Math.pow(myGenes.speciesCode[0]-b2.getGenes().speciesCode[0], 2) + Math.pow(myGenes.speciesCode[1]-b2.getGenes().speciesCode[1], 2) +
-                Math.pow(myGenes.speciesCode[2]-b2.getGenes().speciesCode[2], 2) + Math.pow(myGenes.speciesCode[3]-b2.getGenes().speciesCode[3], 2); // distance between species code vectors determine
+            double specDiffSqr = Math.pow(myGenes.speciesCode[0] - b2.getGenes().speciesCode[0], 2) + Math.pow(myGenes.speciesCode[1] - b2.getGenes().speciesCode[1], 2) +
+                    Math.pow(myGenes.speciesCode[2] - b2.getGenes().speciesCode[2], 2) + Math.pow(myGenes.speciesCode[3] - b2.getGenes().speciesCode[3], 2); // distance between species code vectors determine
 
-        if (fertility>=Math.random() && age>=minAge && hp>maxHP*0.7 && specDiffSqr<=specLim*specLim) {  // if fertile and of age (yes, 10 is considered the min. reproductive age of them), then they can mate
-            Genes newGenes = Genes.recombine(this.getGenes(), b2.getGenes());
-            String newID = createNewID();
+            if (fertility >= Math.random() && Math.abs(age) >= minAge && hp > maxHP * 0.7 && specDiffSqr <= specLim * specLim) {  // if fertile and of age (yes, 10 is considered the min. reproductive age of them), then they can mate
+                Genes newGenes = Genes.recombine(this.getGenes(), b2.getGenes());
+                String newID = createNewID();
 
-            int newX = position[0] + (int)((Math.random()*repro_rad*2)-repro_rad);// spawns baby in absorb radius
-            int newY = position[1] + (int)((Math.random()*repro_rad*2)-repro_rad); //IDEA: gene for spawn radius --DONE!!
+                int newX = position[0] + (int) ((Math.random() * repro_rad * 2) - repro_rad);// spawns baby in repro radius
+                int newY = position[1] + (int) ((Math.random() * repro_rad * 2) - repro_rad); //IDEA: gene for spawn radius --DONE!!
 
-            //check to make sure it isn't crossing bounds; if so, then it wraps around, like a globe]
-            newX = (newX+worldSize)%worldSize;
-            newY = (newY+worldSize)%worldSize;
-            //int[] position = {newX, newY};// changes position
+                //check to make sure it isn't crossing bounds; if so, then it wraps around, like a globe]
+                newX = (newX + worldSize) % worldSize;
+                newY = (newY + worldSize) % worldSize;
+                //int[] position = {newX, newY};// changes position
 
-            position[0]=newX;
-            position[1]=newY;
+                //  position[0]=newX;
+                //  position[1]=newY;
+                matingCooldown ++;
 
-            myWorld.addBird(newGenes, newID, newBorns, new int[] {newX, newY});
-            //fertility-=0.2;
-            hp -= (int) ((maxHP * 0.10) + absorb_rad);
-        } //else if (specDiff>specLim) {
+                myWorld.addBird(0, newGenes, newID, newBorns, new int[]{newX, newY});
+                //fertility-=0.2;
+                hp -= (int) ((maxHP * 0.05) + absorb_rad);
+            } //else if (specDiff>specLim) {
 //             System.out.println("Speciation!!!");
 //        }
+        }
     }
 
     public static int nthIndexOf(String text, char ch, int n) {
@@ -305,19 +324,76 @@ public class Bird {
         return repro_rad;
     }
 
+    public int getWrappedDist(int pos1, int pos2) {
+        int diff = pos2 - pos1;
+        if (Math.abs(diff) > worldSize / 2) {
+            diff = diff > 0 ? diff - worldSize : diff + worldSize;
+        }
+        return diff;
+    }
 
 
+    public boolean inRadius(double radius, int[] otherPos) { // uses THIS radius and other (energy or bird) position
+        double dx = Math.abs(this.position[0] - otherPos[0]);
+        double dy = Math.abs(this.position[1] - otherPos[1]);
 
-    public boolean inRadius(int[] otherPos) { // uses THIS radius and other (energy or bird) position
-        if (Math.hypot(this.position[0] - otherPos[0], this.position[1] - otherPos[1]) <= absorb_rad && juvenile) {
+// Individually wrap each axis if it crosses more than halfway
+        if (dx > worldSize / 2.0) dx = worldSize - dx;
+        if (dy > worldSize / 2.0) dy = worldSize - dy;
+        double hyp = Math.hypot(dx, dy);
+
+        if (hyp <= radius && !juvenile) {
+          //  System.out.println(radius + " cool " + Math.hypot(this.position[0] - otherPos[0], this.position[1] - otherPos[1]));
             return true;
-        } else if (Math.hypot(this.position[0] - otherPos[0], this.position[1] - otherPos[1]) <= absorb_rad*age/10 && !juvenile) {
+        } else if (hyp <= radius*(age/10.0) && juvenile) {
             return true;
         } else {
             return false;
         }
 
         /// need to make it so that it interacts based on size boundary, NOT center position
+    }
+
+    public double[] energyAttrVector(double radius, ArrayList<Energy> nearbyList) {
+        double pullX = 0;
+        double pullY = 0;
+
+        for (Energy e : nearbyList) {
+            double hA = Math.hypot(e.getPosition()[0] - this.getPosition()[0], e.getPosition()[1] - this.getPosition()[1]);
+           // if (age>10) {System.out.println(this.position[0] + " " + this.position[1] + " d " +this.inRadius(visionDist, e.getPosition()) + " comprises " + hA + " but " + visionDist + " then " + (e.getPosition()[0]) + " " +(e.getPosition()[1]));}
+            if (this.inRadius(visionDist, e.getPosition()) && e.isSprouted()) {
+                int dx = getWrappedDist(this.getPosition()[0], e.getPosition()[0]);
+                int dy = getWrappedDist(this.getPosition()[1], e.getPosition()[1]);
+
+                double dist = Math.hypot(dx, dy);
+                if (dist==0) {dist = 0.01; }
+
+                pullX+= (dx/dist) * (radius/dist); //the farther the energy, the less weightage
+                pullY+= (dy/dist) * (radius/dist);
+                if (dist==0 && age>0) {
+               //     System.out.println(e.getPosition()[0] + " then " + this.getPosition()[0] + " yes");
+                }
+            }
+        }
+        return new double[] {pullX, pullY};
+    }
+
+    public double[] crowdAffVector(double radius, ArrayList<Bird> nearbyList) {
+        double pullX = 0;
+        double pullY = 0;
+
+        for (Bird b : nearbyList) {
+            if (this.inRadius(visionDist, b.getPosition())) {
+                int dx = getWrappedDist(this.getPosition()[0], b.getPosition()[0]);
+                int dy = getWrappedDist(this.getPosition()[1], b.getPosition()[1]);
+
+                double dist = Math.hypot(dx, dy);
+                if (dist==0) {dist = 0.1; }
+                pullX+= (dx/dist) * (radius/dist); //the farther the bird, the less weightage
+                pullY+= (dy/dist) * (radius/dist);
+            }
+        }
+        return new double[] {pullX, pullY};
     }
 
     public double angleToClosestEnergy(double radius, ArrayList<Energy> nearbyList) {
@@ -346,7 +422,7 @@ public class Bird {
 
                 double distSqr = dx * dx + dy * dy;
 
-                if (distSqr < closestDistSqr * closestDistSqr && distSqr < radius * radius) {
+                if (distSqr < closestDistSqr && distSqr < radius * radius) {
                     closestDistSqr = distSqr;
                     closestEnergy = e;
                 }
@@ -359,11 +435,21 @@ public class Bird {
         int[] code = this.myGenes.speciesCode; // Accesses the [4] length array
 
         // This scales a shift of +/- 150 into a usable 0-255 RGB range.
-        int r = Math.max(0, Math.min(255, 128 + (code[0] - 1000) * 10));
-        int g = Math.max(0, Math.min(255, 128 + (code[1] - 1000) * 10));
-        int b = Math.max(0, Math.min(255, 128 + (code[2] - 1000) * 10));
+        int r = Math.max(0, Math.min(255, 128 + (code[0] - 1000) * 8));
+        int g = Math.max(0, Math.min(255, 128 + (code[1] - 1000) * 8));
+        int b = Math.max(0, Math.min(255, 128 + (code[2] - 1000) * 8));
 
         return new Color(r, g, b);
+    }
+
+    public void deathProcess(int cycleNum, StringBuilder deathMemo) {
+        alive = false;
+        die_age = age; // we will preserve death age for analysis of the lifespan
+        // deathList.add(this);
+        deathYear= cycleNum;
+        deathMemo.append(this.toString()).append("\n");
+
+
     }
 
     @Override

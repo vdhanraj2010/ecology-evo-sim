@@ -40,7 +40,7 @@ public class Energy {
 
         size = (int) (r%10) +1; //size is last digit +1
 
-        position = new int[] {(int) (Math.random()*worldSize), (int) (Math.random()*worldSize)};
+        position = new int[] {(int) Math.floor((Math.random()*worldSize)), (int) Math.floor((Math.random()*worldSize))};
 
 
 //        return [age, size, position];
@@ -61,7 +61,7 @@ public class Energy {
 
             }
         } else if (decompGrid[this.position[0]][this.position[1]]>0 && !isSprouted()) {
-            if (Math.random()<0.1) {
+            if (Math.random()<0.5) {
                 this.consume();
             }
         } else {
@@ -110,7 +110,7 @@ public class Energy {
     }
 
     public boolean isSprouted() {
-        if (age>2) {
+        if (age>3) {
             return true;
         } else {
             return false;
