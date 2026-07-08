@@ -8,13 +8,15 @@ public class main {
         int worldSize = 500;
         Scanner scnr = new Scanner(System.in);
         World myWorld = new World(worldSize);
-        MapPanel panel = new MapPanel(myWorld, worldSize);
-        SimulationFrame frame = new SimulationFrame(panel);
 
        // myWorld.startUp("world_500-Hyrule");
-        myWorld.startUp("world_500-Paldea");
+        myWorld.startUp("mediterranean");
         myWorld.spawnEnergy(10000);
         //myWorld.spawnEnergyMap(2, 5000);
+
+
+        MapPanel panel = new MapPanel(myWorld, worldSize);
+        SimulationFrame frame = new SimulationFrame(panel);
 
         String reroll = "";
         while (!reroll.equals("c")) {
@@ -71,16 +73,16 @@ public class main {
             try {
                 int cycles = Integer.parseInt(input);
                 for (int i = 0; i < cycles - 1; i++) {
-                    System.out.println("\n\tCycle " + ((int) i + past) + " >>> \n");
+                    if (i%10==0) {System.out.println("\n\tCycle " + ((int) i + past) + " >>> \n");}
                     //myWorld.spawnEnergy((int)(200.0 / myWorld.aliveList.size())); //check Notes for stats - stopped using this and made it self-contained
                     // myWorld.spawnEnergy((int)(500)); //test
                     //Ideas: spawn = random(0, maxEnergyPool) OR spawn = (int)(120 / Math.sqrt(aliveCount));
-                    myWorld.energyCycle(0.2, 5, 10, 3);
+                    myWorld.energyCycle(0.2, 5, 10, 10);
                     myWorld.popSave(0, 5, 1000); // this now also dispenses 1000/popSize energy // usually 5, 5, 1000
                     myWorld.oneTick(5, 10, past + i, 10, 10);
                     myWorld.pause(0.0);
                     panel.repaint();
-                    myWorld.genResults(10);
+                    if (i%10==0) {myWorld.genResults(10);}
 
                     if (myWorld.aliveList.isEmpty()) {
                         System.out.println("Extinction!!!");
@@ -88,7 +90,7 @@ public class main {
                     }
 
                 }
-                myWorld.spawnEnergy((int)(0)); //test
+               // myWorld.spawnEnergy((int)(1000)); //test
                 myWorld.energyCycle(0.33, 5, 10, 10);
                 myWorld.endResults(5, 5, cycles);
                 panel.repaint();

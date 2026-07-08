@@ -16,9 +16,15 @@ public class Genes {
 
     //behavioral
     double speedPref;
+    double bearing;
     double energyOrientBias; //how strongly does the orientation to energy patches matter
     double crowdAff; //how much does the bird stray from or get attrafted to crowds of same species
     double aggroOrientBias;
+
+    //predatory
+    double talonReach;
+    double talonPower;
+    double ecoScale;
 
     // String heritage; //ID of bird
     int[] speciesCode;
@@ -40,22 +46,27 @@ public class Genes {
         crowdAff = 0;
         aggroOrientBias = 0; */
 
+
+
         visionDist = Math.random()*20; //birds start with blindness, have to evolve sight
-        //visionDist = 20;
+        //visionDist = 0;
+        bearing=Math.random()*Math.PI*2;
         speedPref = Math.random();
+        //speedPref = Math.random()/4;
         energyOrientBias = Math.random()/4;
-        //energyOrientBias =1;
+        //energyOrientBias =0;
         crowdAff = Math.random()/2.5-0.2;
         //crowdAff = 0.5;
         aggroOrientBias = 0;
         clusterAmt = 5;
+        ecoScale = 0;
         speciesCode = new int[] {1000, 1000, 1000, 1000};
 
 
         // tempStats = [size, speed
     }
 
-    public Genes(int s, double sp, int mhp, double res, double ab_d, double re_d, double vDist, double spPref, double enOrientBias, double crAff, double agOrientBias, int[] specCode) {
+    public Genes(int s, double sp, int mhp, double res, double ab_d, double re_d, double vDist, double spPref, double enOrientBias, double crAff, double agOrientBias, double ecoScl, int[] specCode) {
         // sets the genes to whatever give
         size = s;
         speed = sp;
@@ -69,6 +80,7 @@ public class Genes {
         energyOrientBias = enOrientBias;
         crowdAff = crAff;
         aggroOrientBias = agOrientBias;
+        ecoScale = ecoScl;
 
         speciesCode = specCode.clone();
 
@@ -112,6 +124,9 @@ public class Genes {
         double newAgOrientBias = average(a.aggroOrientBias, b.aggroOrientBias);
         newAgOrientBias = mutateDouble(newSpecCode, newAgOrientBias, 0.1);
 
+        double newEcoScale = average(a.ecoScale, b.ecoScale);
+        newEcoScale = mutateDouble(newSpecCode, newEcoScale, 0.1);
+
 
         /*
         double newSpeed = (Math.random() < 0.5) ? a.speed : b.speed;
@@ -127,8 +142,9 @@ public class Genes {
         newEnOrientBias = Math.max(Math.min(newEnOrientBias, 1), 0);
         newCrowdAff = Math.max(Math.min(newCrowdAff, 1), -1);
         newAgOrientBias = Math.max(Math.min(newAgOrientBias, 1), -1);
+        newEcoScale = Math.max(Math.min(newEcoScale, 1), 0);
 
-        return new Genes(newSize, newSpeed, newMaxHP, newResistance, newAbsorbD, newReproD, newVisionDist, newSpPref, newEnOrientBias, newCrowdAff, newAgOrientBias, newSpecCode);
+        return new Genes(newSize, newSpeed, newMaxHP, newResistance, newAbsorbD, newReproD, newVisionDist, newSpPref, newEnOrientBias, newCrowdAff, newAgOrientBias, newEcoScale, newSpecCode);
     }
 
     //obtaining methods
@@ -212,7 +228,7 @@ public class Genes {
         DecimalFormat absF = new DecimalFormat("##.##");
         return "Genes: speed - " + absF.format(speed) + ", size - " + size + ", HP - " + maxHP + ", resistance - " + (resF.format(resistance*100)) + ", fertility - " + (resF.format(fertility*100)) +
                 "%, absorb_d - " + (absF.format(Math.pow(absorb_d, 1.0/2)))+ ", repro_d - " + (absF.format(Math.pow(repro_d, 1.0/2)))+ "%, visionDist - " + (absF.format(visionDist)) + ", speedPref - " + (absF.format(speedPref*100)) + "%, " +
-                "enOrientBias - "+ absF.format((double) energyOrientBias*100) + "%, crowdAff - "+ absF.format((double) crowdAff*100) + "%";
+                "enOrientBias - "+ absF.format((double) energyOrientBias*100) + "%, crowdAff - "+ absF.format((double) crowdAff*100) + "%, isPred - " + (ecoScale>0.5) + ", ecoScale - " + absF.format(ecoScale*100);
     }
 
 

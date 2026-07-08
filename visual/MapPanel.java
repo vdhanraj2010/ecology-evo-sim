@@ -2,10 +2,12 @@ package populationPlay.visual;
 
 import populationPlay.World;
 import populationPlay.Bird;
+import populationPlay.Genes;
 import populationPlay.Energy;
 import populationPlay.Biome;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import javax.swing.JPanel;
 import java.awt.Graphics;
@@ -19,9 +21,11 @@ public class MapPanel extends JPanel {
 
     private World world;
     public static int worldSize;
+    private BufferedImage biomeLayout;
     private double zoomFactor = 1.0;     // 1.0 = Normal scaling, 2.0 = Double size, etc.
     private double offsetX = 0.0;        // Camera horizontal panning coordinate
     private double offsetY = 0.0;        // Camera vertical panning coordinate
+    public int scaleFactor=0;
 
     private int lastMouseX;              // Tracks the previous mouse X frame index
     private int lastMouseY;
@@ -34,6 +38,19 @@ public class MapPanel extends JPanel {
         world = w;
         worldSize = wSize;
         initializeCameraControls();
+
+        scaleFactor = 2;
+        biomeLayout = new BufferedImage(worldSize * scaleFactor, worldSize * scaleFactor, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2 = biomeLayout.createGraphics();
+        for (int biomeX=0; biomeX<worldSize; biomeX++) {
+            for (int biomeY=0; biomeY<worldSize; biomeY++) {
+                Biome thisBiome = world.getBiomeMap() [biomeX][biomeY];
+                g2.setColor(thisBiome.getBiomeColor());
+                g2.fillRect(biomeX*scaleFactor, biomeY*scaleFactor, scaleFactor, scaleFactor);
+            }
+        }
+
+        g2.dispose();
     }
 
     @Override
@@ -64,7 +81,10 @@ public class MapPanel extends JPanel {
         g2.fillRect(0, 0, getWidth(), getHeight());
 
         // biomes
-        int scaleFactor = 2;
+        if (biomeLayout != null) {
+            g2.drawImage(biomeLayout, 0, 0, null);
+        }
+
 //        int worldActSize = scaleFactor*worldSize;
 //        g2.setColor(forestColor);
 //        g2.fillRect(0, 0, worldActSize/2, worldActSize/2);
@@ -75,13 +95,6 @@ public class MapPanel extends JPanel {
 //        g2.setColor(desertColor);
 //        g2.fillRect(worldActSize/2, worldActSize/2, worldActSize/2, worldActSize/2);
 
-        for (int biomeX=0; biomeX<worldSize; biomeX++) {
-            for (int biomeY=0; biomeY<worldSize; biomeY++) {
-                Biome thisBiome = world.getBiomeMap() [biomeX][biomeY];
-                g2.setColor(thisBiome.getBiomeColor());
-                g2.fillRect(biomeX*scaleFactor, biomeY*scaleFactor, scaleFactor, scaleFactor);
-            }
-        }
 
         //draw energy
         //g2.setColor(Color.GREEN);
@@ -104,14 +117,18 @@ public class MapPanel extends JPanel {
         // draw birds
         // g2.setColor(Color.RED);
 
-        ArrayList<Bird> birdsSnapshot = new ArrayList<>(world.getAliveList());
+        ArrayList<Bird> birdsSnapshot = world.getAliveList();
 
 
         // Save the old stroke to restore it later
         java.awt.Stroke oldStroke = g2.getStroke();
         g2.setStroke(new BasicStroke(0.75f)); // Gives the outline a distinct thickness
 
-        for (Bird b : birdsSnapshot) {
+        for (int i = 0; i < birdsSnapshot.size(); i++) {
+            if (i >= birdsSnapshot.size()) break;
+
+            Bird b = birdsSnapshot.get(i);
+            if (b == null) continue;
             int x = b.getPosition()[0] * scaleFactor;
             int y = b.getPosition()[1] * scaleFactor;
 
@@ -125,7 +142,13 @@ public class MapPanel extends JPanel {
 //            // Draw an empty ring slightly shifted outward to perfectly encapsulate the inner core
 //            g2.drawOval(x - 1, y - 1, 5, 5);
 
-            // STEP 2: FILL INNER CORE WITH GENETIC SPECIES COLOR
+            if (b.ecoScale>0.66) {
+                g2.setColor(Color.red);
+                g2.drawOval(x - 1, y - 1, 5, 5);
+            } else if (b.ecoScale>0.4) {
+                g2.setColor(Color.blue);
+                g2.drawOval(x - 1, y - 1, 5, 5);
+            }
             g2.setColor(b.getSpeciesColor());
             g2.fillOval(x, y, 4, 4); // Standard size as requested
         }

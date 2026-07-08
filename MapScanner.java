@@ -19,8 +19,8 @@ public class MapScanner {
         int size = 500;
         char[][] mapGrid = new char[size][size];
 
-        String rawMapName = "paldea_island.png";
-        String rawMapDir = "src/populationPlay/mapPresets/" + rawMapName;
+        String rawMapName = "mediterranean";
+        String rawMapDir = "src/populationPlay/mapPresets/" + rawMapName+".png";
         System.out.println(rawMapDir);
         File rawMapFile = new File(rawMapDir);
         BufferedImage rawMapImage=null;
@@ -103,10 +103,10 @@ public class MapScanner {
 
             }
         }
-        String outputFilename = rawMapDir+".txt";
+        String outputFilename = rawMapDir+"_"+size+".txt";
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFilename))) {
-            for (int i = 0; i < 500; i++) {
+            for (int i = 0; i < size; i++) {
                 writer.write(new String(mapGrid[i]));
                 writer.newLine();
             }

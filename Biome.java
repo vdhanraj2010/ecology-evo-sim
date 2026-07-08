@@ -155,7 +155,7 @@ public class Biome {
         biomeColor = oceanColor;
         energyGrowth=0.2;
         energySpread=10; //or 1.0
-        movementMult=5;
+        movementMult=10;
         // insert
     }
 
