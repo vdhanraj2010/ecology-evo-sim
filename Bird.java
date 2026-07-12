@@ -17,8 +17,10 @@ public class Bird {
     private double repro_rad;
     private double visionDist;
     private double energyOrientBias;
-    private double crowdAffBias;
+    private double flockAffBias;
     private double momentumAngle;
+    private double comfortPercent;
+    private double hpDeficit;
     public String biomeIn;
     public Biome currBiome;
     public static int worldSize;
@@ -36,6 +38,7 @@ public class Bird {
     private Genes myGenes;
     private int matingCooldown = -1000;
     public int matingCooldownTime = 1;
+    public boolean hasFertilized = false;
     public boolean isPred = false;
     public double herbivoreEfficiency = 0;
     public double carnivoreEfficiency = 0;
@@ -59,9 +62,10 @@ public class Bird {
         absorb_rad = Math.pow(genes.getAbsorb(), 1.0/2) ; //uses a cbrt curve to determine the effect of the distance of absorption
         repro_rad = Math.pow(genes.getRepro(), 1.0/2) ;
         energyOrientBias = genes.getEnergyOrientBias();
-        crowdAffBias = genes.crowdAff;
+        flockAffBias = genes.flockAff;
         visionDist = genes.getVisionDist();
         momentumAngle=genes.bearing;
+        comfortPercent=genes.comfortPercentage;
         ecoScale = genes.ecoScale;
         herbivoreEfficiency=Math.max(0.0, 1.0 - ecoScale);
         carnivoreEfficiency=ecoScale;
@@ -126,6 +130,7 @@ public class Bird {
         } else {
             hp -= (int) (visionDist * 0.1);
             matingCooldown-=10;
+            hasFertilized=false;
 
             double distanceMoved = move(speed*movementFactor, nearbyEnergy, nearbyBirds, cycleNum);
             hp-= (int) (distanceMoved*movementFactor);
@@ -171,31 +176,40 @@ public class Bird {
         double totalX = 0;
         double totalY = 0;
 //        if (cycleNum<10) {
-//            crowdAffBias= 1;
+//            flockAffBias= 1;
 //            energyOrientBias=1;
 //            visionDist=100;
 //        }
+
+        hpDeficit = 1.0 - (double) this.hp/this.maxHP;
+        double energyShiftMod = Math.pow(hpDeficit, this.getGenes().energySensitivitySlope);
+
+
         double[] energyAttrV = energyAttrVector(visionDist, nearbyEnergy);
-        double[] crowdAffV = crowdAffVector(visionDist, nearbyBirds);
+        double[] flockAffV = flockAffVector(visionDist, nearbyBirds);
 
         double randomDir = Math.random()*Math.PI*2; // angle in radians of movement
-        double dx = (Math.cos(randomDir)*distance); // make a vector with magnitude distance
-        double dy = (Math.sin(randomDir)*distance);
+        double dx = (Math.cos(randomDir)*1); // make a vector with magnitude distance
+        double dy = (Math.sin(randomDir)*1); //*direction
 
-        double foodSourceBias = (isPred) ? crowdAffBias : energyOrientBias;
+        double foodSourceBias = (ecoScale>0.3) ? flockAffBias : energyOrientBias;
 
-        double reproDrive = 0;//(5-Math.abs(age-15))*3/40.0;
+        //double reproDrive = 0;//(5-Math.abs(age-15))*3/40.0;
 
-        totalX += (2.5-foodSourceBias-Math.abs(crowdAffBias+reproDrive))*dx + foodSourceBias*energyAttrV[0] + (crowdAffBias+reproDrive)*crowdAffV[0]; // + crowdAffV[0];
-        totalY += (2.5-foodSourceBias-Math.abs(crowdAffBias+reproDrive))*dy + foodSourceBias*energyAttrV[1] + (crowdAffBias+reproDrive)*crowdAffV[1]; // + crowdAffV[1];
+        double wanderBias = 2.5-foodSourceBias-Math.abs(flockAffBias);
+        double activeFoodBias = foodSourceBias + (energyShiftMod * (1.0 - foodSourceBias));;
+        double activeFlockBias = flockAffBias - (energyShiftMod * (flockAffBias + 1.0));
+
+        totalX += (wanderBias)*dx + activeFoodBias*energyAttrV[0] + (activeFlockBias)*flockAffV[0]; // + flockAffV[0];
+        totalY += (wanderBias)*dy + activeFoodBias*energyAttrV[1] + (activeFlockBias)*flockAffV[1]; // + flockAffV[1];
 
 
 
         double finalDir = Math.atan2(totalY, totalX);
 //        System.out.println("\n" + energyAttrV[0] + " " + energyAttrV[1] + " " +finalDir+  " " + momentumAngle + " "+ getGenes().bearing + " d: " + distance);
 //
-//        System.out.println(2.5-foodSourceBias-Math.abs(crowdAffBias) + " * "+dx+" + "+ foodSourceBias + " * " + energyAttrV[0] + " + " + crowdAffBias + " * " + crowdAffV[0] + " = " + totalX);
-//        System.out.println(2.5-foodSourceBias-Math.abs(crowdAffBias) + " * "+dy+" + "+ foodSourceBias + " * " + energyAttrV[1] + " + " + crowdAffBias + " * " + crowdAffV[1] + " = " + totalY);
+//        System.out.println(2.5-foodSourceBias-Math.abs(flockAffBias) + " * "+dx+" + "+ foodSourceBias + " * " + energyAttrV[0] + " + " + flockAffBias + " * " + flockAffV[0] + " = " + totalX);
+//        System.out.println(2.5-foodSourceBias-Math.abs(flockAffBias) + " * "+dy+" + "+ foodSourceBias + " * " + energyAttrV[1] + " + " + flockAffBias + " * " + flockAffV[1] + " = " + totalY);
         momentumAngle = finalDir;
 
 
@@ -235,11 +249,9 @@ public class Bird {
     }
 
     public void absorbHP (Bird b2, double trophFactor, int specLim, int cycleNum) {
-        double specDiffSqr = Math.pow(myGenes.speciesCode[0] - b2.getGenes().speciesCode[0], 2) + Math.pow(myGenes.speciesCode[1] - b2.getGenes().speciesCode[1], 2) +
-                Math.pow(myGenes.speciesCode[2] - b2.getGenes().speciesCode[2], 2) + Math.pow(myGenes.speciesCode[3] - b2.getGenes().speciesCode[3], 2); // distance between species code vectors determine
 
-        if (specDiffSqr >= specLim * specLim) {
-            hp += (int) ((b2.getHP() / trophFactor) * carnivoreEfficiency);
+        if (isDiffSpecies(b2, specLim)) {
+            hp += (int) ((b2.getHP() / trophFactor) * 1);//carnivoreEfficiency
 
             b2.loseHP(b2.getHP());
             if (hp > maxHP) {
@@ -287,10 +299,8 @@ public class Bird {
 //            b2SpecLim = Integer.parseInt(b2IdNum[b2IdNum.length-specLim]);
 //        }
 
-            double specDiffSqr = Math.pow(myGenes.speciesCode[0] - b2.getGenes().speciesCode[0], 2) + Math.pow(myGenes.speciesCode[1] - b2.getGenes().speciesCode[1], 2) +
-                    Math.pow(myGenes.speciesCode[2] - b2.getGenes().speciesCode[2], 2) + Math.pow(myGenes.speciesCode[3] - b2.getGenes().speciesCode[3], 2); // distance between species code vectors determine
 
-            if (fertility >= Math.random() && Math.abs(age) >= minAge && hp > maxHP * 0.7 && specDiffSqr <= specLim * specLim) {  // if fertile and of age (yes, 10 is considered the min. reproductive age of them), then they can mate
+            if (fertility >= Math.random() && Math.abs(age) >= minAge && hp > maxHP * 0.7 && !isDiffSpecies(b2, specLim)) {  // if fertile and of age (yes, 10 is considered the min. reproductive age of them), then they can mate
                 Genes newGenes = Genes.recombine(this.getGenes(), b2.getGenes());
                 String newID = createNewID();
 
@@ -407,54 +417,69 @@ public class Bird {
     }
 
     public double[] energyAttrVector(double radius, ArrayList<Energy> nearbyList) {
-        double pullX = 999;
-        double pullY = 999;
+        double pullX = Math.cos(momentumAngle);
+        double pullY = Math.sin(momentumAngle);
+        boolean found = false;
 
         for (Energy e : nearbyList) {
             double hA = Math.hypot(e.getPosition()[0] - this.getPosition()[0], e.getPosition()[1] - this.getPosition()[1]);
            // if (age>10) {System.out.println(this.position[0] + " " + this.position[1] + " d " +this.inRadius(visionDist, e.getPosition()) + " comprises " + hA + " but " + visionDist + " then " + (e.getPosition()[0]) + " " +(e.getPosition()[1]));}
             if (this.inRadius(visionDist, e.getPosition()) && e.isSprouted()) {
-                pullX=0; pullY=0;
+                if (!found) {
+                    pullX = 0;
+                    pullY = 0;
+                    found = true;
+                }
                 int dx = getWrappedDist(this.getPosition()[0], e.getPosition()[0]);
                 int dy = getWrappedDist(this.getPosition()[1], e.getPosition()[1]);
 
                 double dist = Math.hypot(dx, dy);
-                if (dist==0) {dist = 0.01; }
-
-                pullX+= (dx/dist) * (radius/dist); //the farther the energy, the less weightage
-                pullY+= (dy/dist) * (radius/dist);
+                if (dist > 0) {
+                    pullX += (dx / dist) * (radius / dist);
+                    pullY += (dy / dist) * (radius / dist);
+                }
                 if (dist==0 && age>0) {
                //     System.out.println(e.getPosition()[0] + " then " + this.getPosition()[0] + " yes");
                 }
             }
         }
-        if (pullX==999 && pullY == 999) {
-            pullX = Math.cos(momentumAngle);
-            pullY = Math.sin(momentumAngle);
-        }
+        pullX /= nearbyList.size();
+        pullY /= nearbyList.size();
         return new double[] {pullX, pullY};
     }
 
-    public double[] crowdAffVector(double radius, ArrayList<Bird> nearbyList) {
-        double pullX = 999;
-        double pullY = 999;
+    public double[] flockAffVector(double radius, ArrayList<Bird> nearbyList) {
+        double pullX = Math.cos(momentumAngle);
+        double pullY = Math.sin(momentumAngle);
+        boolean found = false;
 
-        for (Bird b : nearbyList) {
-            if (this.inRadius(visionDist, b.getPosition())) {
-                pullX=0; pullY=0;
-                int dx = getWrappedDist(this.getPosition()[0], b.getPosition()[0]);
-                int dy = getWrappedDist(this.getPosition()[1], b.getPosition()[1]);
+        for (Bird b2 : nearbyList) {
+            if (this.inRadius(visionDist, b2.getPosition())) { // && !this.isDiffSpecies(b2, 10)
+                if (!found) {
+                    pullX = 0;
+                    pullY = 0;
+                    found = true;
+                }
+                int dx = getWrappedDist(this.getPosition()[0], b2.getPosition()[0]);
+                int dy = getWrappedDist(this.getPosition()[1], b2.getPosition()[1]);
 
                 double dist = Math.hypot(dx, dy);
                 if (dist==0) {dist = 0.1; }
-                pullX+= (dx/dist) * (radius/dist); //the farther the bird, the less weightage
-                pullY+= (dy/dist) * (radius/dist);
+
+                double comfortDistance = radius * comfortPercent;
+                double forceMagnitude = (dist - comfortDistance) / radius;
+
+                if (dist > 0) {
+//                    pullX += (dx / dist) * (radius / dist);
+//                    pullX += (dx / radius);
+//                    pullY += (dy / radius);
+                    pullX += (dx / dist) * forceMagnitude;
+                    pullY += (dy / dist) * forceMagnitude;
+                }
             }
         }
-        if (pullX==999 && pullY == 999) {
-            pullX = Math.cos(momentumAngle);
-            pullY = Math.sin(momentumAngle);
-        }
+        pullX /= nearbyList.size();
+        pullY /= nearbyList.size();
         return new double[] {pullX, pullY};
     }
 
@@ -502,6 +527,13 @@ public class Bird {
         int b = Math.max(0, Math.min(255, 128 + (code[2] - 1000) * 8));
 
         return new Color(r, g, b);
+    }
+
+    public boolean isDiffSpecies (Bird b2, double minDist) {
+        double specDiffSqr = Math.pow(myGenes.speciesCode[0] - b2.getGenes().speciesCode[0], 2) + Math.pow(myGenes.speciesCode[1] - b2.getGenes().speciesCode[1], 2) +
+                Math.pow(myGenes.speciesCode[2] - b2.getGenes().speciesCode[2], 2) + Math.pow(myGenes.speciesCode[3] - b2.getGenes().speciesCode[3], 2);
+
+        return specDiffSqr>minDist*minDist;
     }
 
     public void deathProcess(int cycleNum, StringBuilder deathMemo) {

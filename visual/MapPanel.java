@@ -39,7 +39,7 @@ public class MapPanel extends JPanel {
         worldSize = wSize;
         initializeCameraControls();
 
-        scaleFactor = 2;
+        scaleFactor = 8;
         biomeLayout = new BufferedImage(worldSize * scaleFactor, worldSize * scaleFactor, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2 = biomeLayout.createGraphics();
         for (int biomeX=0; biomeX<worldSize; biomeX++) {
@@ -142,6 +142,10 @@ public class MapPanel extends JPanel {
 //            // Draw an empty ring slightly shifted outward to perfectly encapsulate the inner core
 //            g2.drawOval(x - 1, y - 1, 5, 5);
 
+            if (b.getID().equals("Average model")) {
+                g2.setColor(Color.black);
+                g2.drawOval(x - 1, y - 1, 6, 6);
+            }
             if (b.ecoScale>0.66) {
                 g2.setColor(Color.red);
                 g2.drawOval(x - 1, y - 1, 5, 5);

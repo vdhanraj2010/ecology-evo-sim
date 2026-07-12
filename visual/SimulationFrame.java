@@ -4,6 +4,8 @@ import javax.swing.JFrame;
 
 public class SimulationFrame extends JFrame {
 
+    private int totalTicksElapsed = 0; // Replaces the old console 'past' variable
+
     public SimulationFrame(MapPanel mapPanel) {
 
         setTitle("Evolution Simulator");
@@ -15,4 +17,6 @@ public class SimulationFrame extends JFrame {
 
         setVisible(true);
     }
+
+    
 }

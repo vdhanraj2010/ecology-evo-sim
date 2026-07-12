@@ -21,7 +21,7 @@ public class World {
     String biomeGrid;
     int worldSize;
     double bucketSize;
-    final int numBuckets = 50;
+    final int numBuckets = 10;
 
     public static final Biome PLAINS = new Biome("P");
     public static final Biome FOREST = new Biome("F");
@@ -118,27 +118,34 @@ public class World {
                 /// reproduce check
                 for (Bird b2 : b.reproBirdsBuffer) {
                     // System.out.println("im alive");
-                    if (b.inRadius(b.getReproRad(), b2.getPosition()) && (b2 != b) && b2.alive) {//&& b.getAge()>minAge) { // if Bird2 is not the same bird (no self-incest!!!) and not dead (no necrophilia!!!), then try reproducing (doesnt always work :(   )
+                    if (b.inRadius(b.getReproRad(), b2.getPosition()) && (b2 != b) && b2.alive && !b2.hasFertilized) {//&& b.getAge()>minAge) { // if Bird2 is not the same bird (no self-incest!!!) and not dead (no necrophilia!!!), then try reproducing (doesnt always work :(   )
                         for (int i = 0; i < (Math.random() * cluster); i++) {
                             b.tryReproduce(b2, newBorns, this, minAge, specLim); //minAge not needed anymore
+                            b2.loseHP((int)(b2.getMaxHP()*0.01));
                             //if (b.getID().contains("Ave")) {System.out.println("i alive and happy");}   //   System.out.println(b.getID()+"wow");
                         }
+                        b2.hasFertilized=true;
                     }
                 }
 
-                for (Bird bPrey : b.absorbBirdsBuffer)
+                for (Bird bPrey : b.absorbBirdsBuffer) {
+                    if (Arrays.equals(b.getPosition(), bPrey.getPosition())) {
+                        b.loseHP(1);
+                        bPrey.loseHP(1);
+                    }
                     if (b.getGenes().ecoScale > 0.2) {
-                        if ((b.inRadius(b.getAbsorbRad(), bPrey.getPosition()) && b.getHP() < b.getMaxHP()) && (bPrey.getHP() > 0 && b.ecoScale-bPrey.ecoScale<=0.2)) { // if energy is in radius AND available
+                        if ((b.inRadius(b.getAbsorbRad(), bPrey.getPosition()) && b.getHP() < b.getMaxHP()) && (bPrey.getHP() > 0 && b.ecoScale - bPrey.ecoScale <= 0.2)) { // if energy is in radius AND available
                             b.absorbHP(bPrey, 0.1, 10, cycleNum);
                         }
                     }
-
+                }
 
                 if (aliveList.size() <= parthNum && Math.random() < 0.25) { //Parthenogenesis in population stress
                     b.tryReproduce(b, newBorns, this, minAge, 0);
                     System.out.println("PARTHEN!!!");
                     parthCount++;
                 }
+
 
             } else {
                 //aliveList.removeIf(a -> a == b); ------ moved below to do by newDeaths
@@ -275,6 +282,9 @@ public class World {
 
         } else if (biomeType.equalsIgnoreCase("world_500-Hyrule")) {
             loadMapPreset("src/populationPlay/mapPresets", "world_500-Hyrule.txt");
+
+        } else if (biomeType.equalsIgnoreCase("eurasia")) {
+            loadMapPreset("src/populationPlay/mapPresets", "organic_world_map_500x500.txt");
 
         } else if (biomeType.equalsIgnoreCase("mediterranean")) {
             loadMapPreset("src/populationPlay/mapPresets", "mediterranean.png.txt");
@@ -432,7 +442,7 @@ public class World {
         } else if (map ==2) {
             int startPt;
 
-            startPt = 50 - (int)(Math.sqrt(amount)/2); //center (50) - length/2
+            startPt = worldSize/2 - (int)(Math.sqrt(amount)/2); //center (50) - length/2
 
             for (int i=0; (i*i)<amount; i++) {
                 for (int j=0; (j*j)<amount; j++) {
@@ -536,7 +546,9 @@ public class World {
         int alAgeSum = 0;
         int alChild =0;
         int[] alPos = new int[2];
-        double alSpeed=0; double alSize=0; double alMaxHP = 0; double alRes=0; double alFert=0; double alAbsD=0; double alReprD=0; double alVisD=0; double alSpPref=0; double alEnOrBias=0; double alCrAff=0; double alAgOrBias=0; double alEcoScale=0;
+        double alSpeed=0; double alSize=0; double alMaxHP = 0; double alRes=0; double alFert=0; double alAbsD=0;
+        double alReprD=0; double alVisD=0; double alSpPref=0; double alEnOrBias=0; double alFlAff=0; double alAgOrBias=0;
+        double alEcoScale=0; double geneStat1=0; double geneStat2=0; double geneStat3=0; double geneStat4=0;
 
 
 
@@ -563,9 +575,13 @@ public class World {
                     alVisD += b.getGenes().getVisionDist();
                     alSpPref += b.getGenes().speedPref;
                     alEnOrBias += b.getGenes().getEnergyOrientBias();
-                    alCrAff += b.getGenes().crowdAff;
+                    alFlAff += b.getGenes().flockAff;
                     alAgOrBias += b.getGenes().aggroOrientBias;
                     alEcoScale += b.getGenes().ecoScale;
+                    geneStat1+= b.getGenes().speciesCode[0];
+                    geneStat2+= b.getGenes().speciesCode[1];
+                    geneStat3+= b.getGenes().speciesCode[2];
+                    geneStat4+= b.getGenes().speciesCode[3];
                 }
             }
 
@@ -621,7 +637,7 @@ public class World {
             }
         }
         int alAvNum = (alNum==0) ? 0 : alAgeSum/alNum;
-        double[] avgStats = new double[] {alSize, alSpeed, alMaxHP, alRes, alAbsD, alReprD, alVisD, alSpPref, alEnOrBias, alCrAff, alAgOrBias, alEcoScale};
+        double[] avgStats = new double[] {alSize, alSpeed, alMaxHP, alRes, alAbsD, alReprD, alVisD, alSpPref, alEnOrBias, alFlAff, alAgOrBias, alEcoScale, geneStat1, geneStat2, geneStat3, geneStat4};
         for (int avgP=0; avgP<avgStats.length; avgP++) {
             avgStats[avgP] = avgStats[avgP] / alNum;
         }
@@ -636,17 +652,21 @@ public class World {
                 alVisD = avgStats[6];
                 alSpPref = avgStats[7];
                 alEnOrBias = avgStats[8];
-                alCrAff = avgStats[9];
+                alFlAff = avgStats[9];
                 alAgOrBias = avgStats[10];
                 alEcoScale = avgStats[11];
+                geneStat1 = avgStats[12];
+                geneStat2 = avgStats[13];
+                geneStat3 = avgStats[14];
+                geneStat4 = avgStats[15];
                 alPos[0] /= alNum;
                 alPos[1] /= alNum;
             }
 
 
-            Genes avgGenes = new Genes((int) alSize, alSpeed, (int) alMaxHP, alRes, alAbsD, alReprD, alVisD, alSpPref, alEnOrBias, alCrAff, alAgOrBias, alEcoScale, new int[]{0, 0, 0, 0});
-            // Bird avgBird = new Bird(avgGenes, "Average model", alPos, biomeMap);
-            Bird avgBird = addBird(-1, avgGenes, "Average model", aliveList, alPos);
+            Genes avgGenes = new Genes((int) alSize, alSpeed, (int) alMaxHP, alRes, alAbsD, alReprD, alVisD, alSpPref, alEnOrBias, alFlAff, alAgOrBias, 0.5, alEcoScale, new int[]{(int)geneStat1, (int)geneStat2, (int)geneStat3, (int)geneStat4});
+            Bird avgBird = new Bird(alAvNum, avgGenes, "Average model", alPos, biomeMap);
+            //Bird avgBird = addBird(-1, avgGenes, "Average model", aliveList, alPos);
 
             System.out.println("-------------------------------------------------------------\n" + avgBird + "\n-------------------------------------------------------------" +
                     "\n Alive: " + alNum + " - Deaths: " + ddNum + " - Energy left: " + eNum +
@@ -689,7 +709,7 @@ public class World {
         int alAgeSum = 0;
         int alChild =0;
         int[] alPos = new int[2];
-        double alSpeed=0; double alSize=0; double alMaxHP = 0; double alRes=0; double alFert=0; double alAbsD=0; double alReprD=0; double alVisD=0; double alSpPref=0; double alEnOrBias=0; double alCrAff=0; double alAgOrBias=0; double alEcoScale=0;
+        double alSpeed=0; double alSize=0; double alMaxHP = 0; double alRes=0; double alFert=0; double alAbsD=0; double alReprD=0; double alVisD=0; double alSpPref=0; double alEnOrBias=0; double alFlAff=0; double alAgOrBias=0; double alEcoScale=0;
 
         int BinP=0; int BinF=0; int BinS=0; int BinM=0; int BinC=0; int BinJ=0; int BinT=0; int BinD=0; int BinV=0; int BinO=0;
 
@@ -711,7 +731,7 @@ public class World {
                     alVisD += b.getGenes().getVisionDist();
                     alSpPref += b.getGenes().speedPref;
                     alEnOrBias += b.getGenes().getEnergyOrientBias();
-                    alCrAff += b.getGenes().crowdAff;
+                    alFlAff += b.getGenes().flockAff;
                     alAgOrBias += b.getGenes().aggroOrientBias;
                     alEcoScale += b.getGenes().ecoScale;
                 }
@@ -773,7 +793,7 @@ public class World {
 
 
         int alAgeAv = (alNum!=0) ? alAgeSum/alNum : 0;
-        double[] avgStats = new double[] {alSize, alSpeed, alMaxHP, alRes, alAbsD, alReprD, alVisD, alSpPref, alEnOrBias, alCrAff, alAgOrBias, alEcoScale};
+        double[] avgStats = new double[] {alSize, alSpeed, alMaxHP, alRes, alAbsD, alReprD, alVisD, alSpPref, alEnOrBias, alFlAff, alAgOrBias, alEcoScale};
         for (int avgP=0; avgP<avgStats.length; avgP++) {
             avgStats[avgP] = avgStats[avgP]/alNum;
         }
@@ -782,12 +802,12 @@ public class World {
         int alAvNum = (alNum==0) ? 0 : alAgeSum/alNum;
 
         if (alNum>0) {
-            alSize=avgStats[0]; alSpeed=avgStats[1]; alMaxHP=avgStats[2]; alRes=avgStats[3]; alAbsD=avgStats[4]; alReprD=avgStats[5]; alVisD=avgStats[6]; alSpPref=avgStats[7]; alEnOrBias=avgStats[8]; alCrAff=avgStats[9]; alAgOrBias=avgStats[10]; alEcoScale=avgStats[11];
+            alSize=avgStats[0]; alSpeed=avgStats[1]; alMaxHP=avgStats[2]; alRes=avgStats[3]; alAbsD=avgStats[4]; alReprD=avgStats[5]; alVisD=avgStats[6]; alSpPref=avgStats[7]; alEnOrBias=avgStats[8]; alFlAff=avgStats[9]; alAgOrBias=avgStats[10]; alEcoScale=avgStats[11];
             alPos[0]/=alNum; alPos[1]/=alNum;
         }
 
 
-        Genes avgGenes = new Genes((int) alSize, alSpeed, (int) alMaxHP, alRes, alAbsD, alReprD, alVisD, alSpPref, alEnOrBias, alCrAff, alAgOrBias, alEcoScale, new int[] {0, 0, 0, 0});
+        Genes avgGenes = new Genes((int) alSize, alSpeed, (int) alMaxHP, alRes, alAbsD, alReprD, alVisD, alSpPref, alEnOrBias, alFlAff, alAgOrBias, 0.5, alEcoScale, new int[] {0, 0, 0, 0});
        // Bird avgBird = new Bird(avgGenes, "Average model", alPos, biomeMap);
         Bird avgBird = addBird(-10000, avgGenes, "Average model", aliveList, alPos);
 
@@ -935,3 +955,16 @@ public class World {
 *  - LETS make a graph option where u can graph the lineage of a ancestor --to do in 1.2
 * */
 
+/* GIT
+* COMMIT
+* - git checkout -b <new-version-name>
+* - git add .
+* - git commit -m "<update-message>"
+* - git push origin <version-name>
+* MERGE
+* - git checkout main
+* - git merge <version-name>
+* - git push origin main
+* TOKEN
+* git remote set-url origin https://<NEW-TOKEN>@github.com/vdhanraj2010/ecology-evo-sim.git
+ * */

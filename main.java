@@ -5,15 +5,15 @@ import populationPlay.visual.SimulationFrame;
 
 public class main {
     public static void main(String[] args) {
-        int worldSize = 500;
+        int worldSize = 100;
         Scanner scnr = new Scanner(System.in);
         World myWorld = new World(worldSize);
 
        // myWorld.startUp("world_500-Hyrule");
-        myWorld.startUp("mediterranean");
-        myWorld.spawnEnergy(10000);
+       myWorld.startUp("grid");
+        myWorld.spawnEnergy(100);
+        //myWorld.spawnEnergyMap(1, 100000);
         //myWorld.spawnEnergyMap(2, 5000);
-
 
         MapPanel panel = new MapPanel(myWorld, worldSize);
         SimulationFrame frame = new SimulationFrame(panel);
@@ -21,7 +21,7 @@ public class main {
         String reroll = "";
         while (!reroll.equals("c")) {
             myWorld.wipeOut();
-            myWorld.spawnBirds(10000, 0);
+            myWorld.spawnBirds(100, 0);
             System.out.println("Here is the new starting population: \n");
             myWorld.genResults(50);
             System.out.print("\nContinue or reroll? (type 'c' or 'r' respectively)? \n\t>>> ");
