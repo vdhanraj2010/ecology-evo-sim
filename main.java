@@ -154,7 +154,7 @@ while my roject is more realistic and self sustaining, i want to be able to make
 * 3) birds should be able to make decisions on where to go, based on direction and a factor of nearby food and nearby birds of same species and nearby birds of otehr species and the random weight --DONE!!!
 * 4) use the above to make a simple neural system resulting in two nerons: direction and speed (so a vecotr control), using multiple genetically coded receptors, including: --speed is done, distance not yet
 * > crowd preference   >direction of food in vision (weight for size and distance)   >aggression/aversion to other species    >stress gene which says when to use extra energy resources based on hp%
-* ---the movement vecotr is categorized into: sensory genes, preference genes, and decision genes (stress +memory) --stress IN PROGRESS
-* 5) make predator species, with red halo, triggered by a gene marking. omnivores maybe?
+* ---the movement vecotr is categorized into: sensory genes, preference genes, and decision genes (stress +memory) --stress DONE, memory IN PROGRESS
+* 5) make predator species, with red halo, triggered by a gene marking. omnivores maybe? --DONE!!!
 * 6) make species categorized in prep for predation and categorization / nomenclature
 * 7) make an "average bird" for all, then for species -- for all, DONE!!, for species, not yet*/
